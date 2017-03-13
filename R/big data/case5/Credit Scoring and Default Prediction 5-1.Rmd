@@ -9,40 +9,55 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 http://web.pdx.edu/~crkl/WISE2016/data/AmEx.csv
-# AmEx Credit Scoring and Default
-# DEFAULT|CARDHLDR ~ AGE+INCOME+OWNRENT+SELFEMPL+ACADMOS, used by Greene's lecture
+AmEx Credit Scoring and Default
+DEFAULT|CARDHLDR ~ AGE+INCOME+OWNRENT+SELFEMPL+ACADMOS, used by Greene's lecture
+```{r}
 # setwd("C:/Course16/WISE2016/R")
-AmEx<-read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
+#AmEx<-read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
 AmEx<-read.csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
 # exclude<-c(1,2,"BANKBOTH","CREDGAS","UNEMP","DRUGSTOR")
+#
+#CATDHLDR(申请信用卡并获得),DEFAULT(欠款)
+#获得信用卡和未获得信用卡
 table(AmEx$CARDHLDR)
+#未拖欠+拖欠(但是如果没有卡,自动归入未拖欠(2945))
 table(AmEx$DEFAULT)
+#持卡/欠款二维列联表
 with(AmEx,table(DEFAULT,CARDHLDR))
 xtabs(~ DEFAULT+CARDHLDR,data=AmEx)
-# (9503+996)/13444=78% card holders
-# 996/(9503+996)=9.5% card holders will default
-# DEFAULT|CARDHLDR=1
+```
+
+(9503+996)/13444=78% card holders               
+996/(9503+996)=9.5% card holders will default           
+DEFAULT|CARDHLDR=1关注持卡人中欠款概率的时候,其分布不再是随机的,考虑欠款概率的时候采用logit回归         
+```{r}
+#去掉c中指定位置的变量,且要求cardhldr为1的子集,剩下34个变量.why?in paper??
 AmEx1<-subset(AmEx,CARDHLDR==1,select=-c(1,6,12,17,39:56))
 summary(AmEx1)
 Y<-as.matrix(AmEx1[,"DEFAULT"])
 X<-as.matrix(AmEx1[,c("AGE","INCOME","OWNRENT","SELFEMPL","ACADMOS")])
-
+#ols进行回归
 ols<-lm(Y~X)
 summary(ols)
-
+#logit回归
 logit<-glm(Y~X,family="binomial")
 summary(logit)
-
+#变量并非都显著,逐步回归
 # stepwise logit regression
+#空模型
 logit0<-glm(DEFAULT~1,data=AmEx1,family="binomial")
+#全模型
 logit1<-glm(DEFAULT~.,data=AmEx1,family="binomial")
-logit2<-step(logit0d,scope=list(lower=logit0,upper=logit1),direction="forward")
+#逐步回归(基于AIC)可以改成BIC,得到更小的子集
+logit2<-step(logit0,scope=list(lower=logit0,upper=logit1),direction="forward")
 summary(logit2)
+```
 
-library(boot)
-# cross validation can take a long time to run
-logit2.cv<-cv.glm(glmfit=logit2,data=AmEx1)
-summary(logit2.cv)
-# use glmnet pacakge to select variables and run CV will be more efficient
 
+install.packages("boot")                
+library(boot)           
+ cross validation can take a long time to run           
+logit2.cv<-cv.glm(glmfit=logit2,data=AmEx1)             
+summary(logit2.cv)              
+ use glmnet pacakge to select variables and run CV will be more efficient               
 

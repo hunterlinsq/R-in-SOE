@@ -1,0 +1,118 @@
+---
+title: "Chinese Yuan and Stock Market 6-1"
+author: "Elara"
+date: "2016年5月14日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,message=FALSE)
+```
+
+China Stock Market Index: Shanghai Common Stock(A股)
+Time Series Data Visualization
+#数据获取
+```{r}
+# Using Quandl API to search and retrieve data series
+# install.packages("Quandl")
+library(Quandl)
+# Quandl.api_key("4UqGASL7CigqHzpfdnNw")
+# SP500<-Quandl(code="YAHOO/INDEX_GSPC",type="xts") 
+# xts:regular format
+# xts or zoo type should be used for daily high frequency data
+# frequency conversion for xts type: apply.xxx
+# xxx=yearly, quartertly, monthly, weekly
+# SSEC<-Quandl(code="YAHOO/INDEX_SSEC",type="xts") 
+# daily price index: irregularly-spaced time series
+# the following is for saving to csv and retriving from it
+# SSEC_raw<-Quandl(code="YAHOO/INDEX_SSEC",type="raw",order="asc") 
+# write.csv(SSEC,file="C:/Course16/WISE2016/data/SSEC.csv",row.names=F)
+# SSEC1<-read.csv(file="C:/Course16/WISE2016/data/SSEC.csv",stringsAsFactors=F)
+# SSEC1<-xts(SSEC1,order.by=as.Date(SSEC1$Date))
+# data<-SSEC1[,"Adjusted.Close"]
+load("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\big data\\case6\\SP500 and SSEC.RData")
+#Volume数据开始为0是因为没数据
+```
+
+#数据转换
+```{r}
+data<-SSEC[,"Adjusted Close"]
+class(data)
+summary(data)
+plot(data)
+mdata<-ts(apply.monthly(data,mean),start=c(1997,7),frequency=12)
+# monthly average: regularly-space time series把日值转化成月度均值
+# ts:time series
+# apply.monthly(data,function):solve the function of the data monthly
+# start=c(yyyy,m)
+# frequency=the number of observations per unit of time.(only a setting value,not influence the mdata)
+class(mdata)
+head(mdata)
+plot(mdata)
+```
+
+#月度趋势
+```{r}
+# install.packages("forecast")
+library(forecast)
+monthplot(mdata)#每张小图是97-16年某月的月平均指数,横线是不同年份在该月指数的均值
+seasonplot(mdata,s=12,year.labels=T,col=rainbow(12))#每条线是某一年各月均值
+lag.plot(mdata,12)#滞后相关图
+```
+
+#daily return as difference of log price index
+#日趋势
+```{r}
+#日收益率rd=100*diff(log(data))=100*ln(data@t)-ln(data@t-1)=100*ln(data@t/data@t-1)
+rd<-na.omit(100*diff(log(data)))#eliminate miss value
+summary(rd)
+plot(rd)
+# monthly return is the sum of daily returns in a month
+# rm=return monthly=100*diff_month(log(data))=100*ln(data@t)-ln(data@t-m)=100*ln(data@t/data@t-m)=sum r
+# diff can be eliminate
+# 月收益率rm
+rm<-ts(apply.monthly(rd,sum),start=c(1997,7),frequency=12)
+plot(rm)
+monthplot(rm)#各月的年同比数据
+seasonplot(rm,s=12,year.labels=T,col=rainbow(12))#各年的月度数据曲线
+lag.plot(rm,12)#滞后相关图
+Acf(rm,60,type="correlation")#ACF,lag60,if it cut at p order then it is a MA(p)
+Acf(rm,60,type="partial")#PACF,lag60,if it cut at p order then it is a AR(p)
+Acf(rm,200,type="correlation")#may be MA(107)
+Acf(rm,150,type="partial")#may be AR(77)
+```
+
+#ACF & PACF
+1. Autocorrelation function     
+$$ACF=\rho_k = \frac{\gamma_k}{\gamma_0}=\frac{cov(X_t,X_{t-k})}{\sigma^{2}(X_t)}$$      
+It is a decreasing function of k                
+The speed of decreasing of stationary series is faster then nonstationary series        
+2. Partial autocorrelation function     
+$$
+PACF=\varphi_{kk}\\
+\textrm{ solve regression } \\
+X_t=\varphi_{k1} X_{t-1}+\varphi_{k2}X_{t-2}+\varphi_{k3}X_{t-3}+\dots +\varphi_{kk}X_{t-k}+\epsilon_t
+$$
+
+|  模型   |           ACF           |               PACF                |   
+|---------|-------------------------|-----------------------------------|       
+|白噪声   |$\rho_k=0$               |$\rho_k=0$                         |       
+|AR(p)    |衰减趋于0(几何形或震荡型)|p阶后截尾:$\rho_k^{*}=0,k>q$       |             
+|MA(q)    |q阶后截尾:$\rho_k=0,k>q$ |衰减趋于0(几何型或震荡型)          |         
+|ARMA(p,q)|q阶后衰减趋于0(几何型或震荡型)|p阶后衰减趋于0(几何型或震荡型)|         
+
+# monthly volatility is the sum of daily squared returns in a month
+月度风险是当月日回报率平方和
+```{r}
+rv<-ts(apply.monthly(rd^2,sum),start=c(1997,7),frequency=12)#transform return daily into sum of rd^2 monthly
+plot(rv)
+#每月的各年同比
+monthplot(rv)
+#每年的各月趋势
+seasonplot(rv,s=12,year.labels=T,col=rainbow(12))
+lag.plot(rv,12)
+Acf(rv,60,type="correlation")
+Acf(rv,60,type="partial")
+Acf(rv,200,type="correlation")#may be MA(97)
+Acf(rv,60,type="partial")#may be AR(5)
+```

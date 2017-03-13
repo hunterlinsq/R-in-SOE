@@ -10,23 +10,29 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Walmart Sales
-# Fill in all missing values to prepare for forecast
-#
+Fill in all missing values to prepare for forecast
+```{r}
 library(readr)
 # Store Dept Date Weekly_Sales IsHoliday: 2010-02-05 ~ 2012-10-26
-data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
+#data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
 data1<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_train.csv")
 # Store Type Size
-data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
+#data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
 data2<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_stores.csv")
 # Store Date Temperature Fuel_Price Markdown1-5 CPI Unemplyment IsHoliday
-data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
+#data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
 data3<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_features.csv")
 # Store Dept Date IsHoliday: 2012-11-02 ~ 2013-07-26
-data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
+#data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
 data4<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_test.csv")
+head(data1)#train
+head(data2)#store
+head(data3)#features
+head(data4)#test
+```
 
 # Need to fill missing values in data3
+```{r}
 # (1) MarkDown1~5 are misterious with lots of missings
 data3$MarkDown1[is.na(data3$MarkDown1)]<-0
 data3$MarkDown2[is.na(data3$MarkDown2)]<-0
@@ -37,7 +43,7 @@ data3$MarkDown5[is.na(data3$MarkDown5)]<-0
 data3$CPI[is.na(data3$CPI)]<-193.5893
 data3$Unemployment[is.na(data3$Unemployment)]<-8.335
 
-data4<-read_csv("C:/Course16/ec510/data/Walmart/test.csv")
+#data4<-read_csv("C:/Course16/ec510/data/Walmart/test.csv")
 # 2010-02-05 ~ 2012-10-26
 train<-merge(data1,merge(data2,data3))
 summary(train)  # make sure no missing values
@@ -50,8 +56,10 @@ train$Date<-as.Date(train$Date)
 train$Store<-as.factor(train$Store)
 train$Dept<-as.factor(train$Dept)
 train$Type<-as.factor(train$Type)
+```
 
 # using OLS with Store and Dept dummyies
+```{r}
 # Note: Size is correlated with Store dummyies
 m1<-lm(Weekly_Sales~Store+Dept
        +IsHoliday+Temperature+Fuel_Price+CPI+Unemployment

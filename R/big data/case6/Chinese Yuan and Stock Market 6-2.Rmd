@@ -1,0 +1,123 @@
+---
+title: "Chinese Yuan and Stock Market 6-2"
+author: "Elara"
+date: "2016年5月14日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,message=FALSE)
+```
+
+# China Stock Market Index: Shanghai Common Stock
+Structural Time Series (StrucTS function)
+```{r}
+#Using Quandl API to search and retrieve data series
+# install.packages("Quandl")
+library(Quandl)
+# SP500<-Quandl(code="YAHOO/INDEX_GSPC",type="xts") 
+# xts or zoo type should be used for daily high frequency data
+# frequency conversion for xts type: apply.xxx
+# xxx=yearly, quartertly, monthly, weekly
+#SSEC<-Quandl(code="YAHOO/INDEX_SSEC",type="xts") 
+# daily price index: irregularly-spaced time series
+load("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\big data\\case6\\SP500 and SSEC.RData")
+data<-SSEC[,"Adjusted Close"]
+summary(data)
+plot(data)
+```
+
+# daily return as difference of log price index
+```{r}
+rd<-na.omit(100*diff(log(data)))# daily return rd
+summary(rd)
+plot(rd)
+# monthly return is the sum of daily returns in a month
+rm<-ts(apply.monthly(rd,sum),start=c(1997,7),frequency=12)# monthly return rm
+# monthly volatility is the sum of daily squared returns in a month
+rv<-ts(apply.monthly(rd^2,sum),start=c(1997,7),frequency=12)# monthly volatility rv
+plot(rv)#risk level monthly ,ylab is incorrect
+Y<-rv #keep rv
+summary(Y)
+```
+# Exponential Smoothing
+1. model:
+$$
+y_t=m_t+s_t+\epsilon_t \textrm{ or } ln(y_t)=m_t+s_t+\epsilon_t \\
+trend:m_t=a_t+b_t(level+slope) \\
+seasonal:s_t \\
+random:\epsilon_t
+$$              
+2. EWMA(Simple Exponential Smoothing)   
+case：$b_t=0$,$s_t=0$         
+model：$y_{t+1}=a_t+b_t+s_t+\epsilon_t$
+smoothing equation:     
+$$
+\begin{eqnarray}
+a_t & = & \alpha y_t+(1-\alpha )a_{t-1},0<\alpha <1   \\
+    & = & \alpha y_t+\alpha(1-\alpha)y_{t-1}+\alpha(1-\alpha)^{2}y_{t-2}+\dots \\
+\end{eqnarray}
+$$      
+forecast equation:      
+$$
+\begin{eqnarray}
+\hat{y}_{t+1|t} & = & a_t,t & = & 1,2,\dots,n \\
+\hat{y}_{n+h|n} & = & a_n,h & = & 1,2,\dots,n \\
+\end{eqnarray}
+$$      
+state space representation:      
+$$
+\begin{eqnarray}
+y_t & = & a_{t-1}+e_t \textrm{  observation equation} \\
+a_t & = & a_{t-1}+\alpha e_t \textrm{  state equation} \\
+a_1 & = & y_1 \textrm{  initialization} \\
+a_2 & = & a_1+\alpha(y_2-a_1) \textrm{  observation equation} \\
+\dots & {} & {} \\
+a_n & = & a_{n-1}+\alpha(y_n-a_{n-1}) \textrm{  } \hat{\alpha}=\min_{\alpha}arg\sum _{t=1}^{n}e_t^{2}
+\end{eqnarray}
+$$
+
+3. Holt Exponential Smoothing(including trend)           
+$s_t=0$         
+page 8 in[TSAR-1.pdf](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\TSAR-1.pdf)
+
+4. Holt-Winters Exponential Smoothing(including trend and season)   
+page 10 in[TSAR-1.pdf](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\TSAR-1.pdf)
+
+# Exponential Smoothing: Holt-Winters Filtering
+```{r}
+#Y=rv=monthly volatility,is the sum of daily squared returns in a month
+sts1<-decompose(Y)#把数据分解成趋势,季度,随机扰动
+plot(sts1)
+HoltWinters(Y)#求解HoltWinters指数平滑系数,a是水平,b是趋势,s是季度影响,平滑参数alpha,beta(没有斜率趋势=0),gamma
+HoltWinters(Y,beta=F,gamma=F)#设定不含beta和gamma
+```
+
+# Exponential Smoothing: Structural TS(base) 3 models
+page 2 in [TSAR-2.pdf](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\TSAR-2.pdf)
+```{r}
+# local level model(no slope)
+sts1a<-StructTS(Y,type="level",init=c(1,1))#init初始vt,wt方差
+sts1a
+plot(Y)
+lines(sts1a$fitted,col="red")
+# local linear trend model(allow trend)
+sts1b<-StructTS(Y,type="trend",init=c(1,1,1))#init初始扰动项方差
+sts1b#slope仍然是0
+plot(Y)
+lines(sts1b$fitted[,1],col="red")
+# best structural model (linear trend and seasonal model)
+sts1c<-StructTS(Y,type="BSM")#BSM=best structural model
+sts1c#slope仍然是0,有season因素
+plot(Y)
+lines(sts1c$fitted[,1],col="red")
+
+# plot of slope of the trend model
+sts1b$fitted
+plot(sts1b$fitted[,2])
+
+# plot of slope and seasonal of BSM
+sts1c$fitted
+plot(sts1c$fitted[,2])
+plot(sts1c$fitted[,3])
+```

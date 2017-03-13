@@ -9,12 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-TOTAL WEEKLY SALES OF IMPORT AND DOMESTIC NON VQA RED & WHITE TABLE WINE 
-WITHIN MUNICIPALITY OF VANCOUVER IN UNITS AND LITRES
-FROM WEEK ENDING APRIL 4, 2009 TO WEEK ENDING MAY 28, 2011
-Fast Read from CSV file: read_csv
-Using ggplot() of ggplot2 package for data visualization
-#载入数据
+TOTAL WEEKLY SALES OF IMPORT AND DOMESTIC NON VQA RED & WHITE TABLE WINE        
+WITHIN MUNICIPALITY OF VANCOUVER IN UNITS AND LITRES    
+FROM WEEK ENDING APRIL 4, 2009 TO WEEK ENDING MAY 28, 2011      
+Fast Read from CSV file: read_csv       
+Using ggplot() of ggplot2 package for data visualization        
+#载入数据       
 ```{r}
 # install.packages("readr")
 # install.packages("ggplot2")
@@ -27,7 +27,7 @@ names(wine)
 summary(wine)
 ```
 
-#数据整理
+#数据整理       
 ```{r}
 # alc<-wine$`Alcohol Percent`
 # sweet<-wine$`Product Sweetness Code`
@@ -45,9 +45,14 @@ where<-ifelse(substr(where,1,7)=="GERMANY","GERMANY",where)
 big5<-c("AUSTRALIA","FRANCE","ITALY","UNITED STATES","OTHERS")
 where5<-ifelse(!is.element(where,big5),"OTHERS",where)
 wine$where<-factor(where5,levels=big5)
-wine$what<-factor(wine$`Store Category Minor Name`)   # Red or White
+#酒类
+wine$what<-factor(wine$`Store Category Minor Name`)   
+#销量        
 wine$quantity<-wine$`Total Weekly Selling Unit`
+```
 
+#价格分析       
+```{r}
 # price analysis
 wine$price<-wine$`Current Display Price`
 wine$price_level<-cut(wine$price,breaks=c(-Inf,50,100,1000,Inf),labels=c("Low","Medium","High","Expensive"))
@@ -68,23 +73,32 @@ library(ggplot2)
 ggplot(data=wine,aes(x=price_level,fill=where))+geom_bar()
 ggplot(data=wine,aes(x=price_level,fill=what))+geom_bar(position="dodge")
 ggplot(data=wine,aes(x=price_level,y=price))+geom_boxplot()+theme_classic()
+```
 
+#缩小数据       
+```{r}
 varsel<-c("what","where","quantity","price","price_level")
 wine100<-subset(wine,price<100 & quantity>0,varsel) # not including returned 
+```
 
-# histogram
+# histogram     
+```{r}
 ggplot(data=wine100,aes(x=price))+geom_histogram(fill="blue")
 h1<-ggplot(data=wine100,aes(x=price,fill=what))+geom_histogram()
 h1
 h2<-ggplot(data=wine100,aes(x=price,fill=where))+geom_histogram()
 h2
+#横向排柱子
 h3<-ggplot(data=wine100,aes(x=price,fill=where))+geom_histogram(position="dodge")
 h3
 h4<-h2 + facet_grid(where ~ .)
 h4
 h4+ggtitle("Histogram of Displayed Price")+ylab("Frequency")+xlab("Price per Bottle in $")
-#  scale_fill_brewer("Wine Type"),palette="Set1")
-# density
+# scale_fill_brewer("Wine Type"),palette="Set1")
+```
+
+# density       
+```{r}
 ggplot(data=wine100,aes(x=price))+geom_density(fill="blue")
 d1<-ggplot(data=wine100,aes(x=price,fill=where))+geom_density()
 d1
@@ -95,8 +109,10 @@ d3
 d3+ggtitle("Density Distribution of Displayed Price")+ylab("Probability Density")+
   xlab("Price per Bottle in $")
 #  scale_fill_brewer("Country",palette="Set1")
+```
 
-# demand analysis
+# demand analysis       
+```{r}
 model1<-lm(quantity~price,data=wine100)
 summary(model1)
 model2<-lm(log(quantity)~log(price),data=wine100)
@@ -111,3 +127,4 @@ g3
 g4<-g2 + facet_grid(where ~ .)
 g4
 g4+ggtitle("Demand Function for Table Wine in Vancouver BC")+theme_bw()
+```

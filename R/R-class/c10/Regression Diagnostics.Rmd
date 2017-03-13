@@ -4,7 +4,7 @@ author: "Elara"
 date: "2016年5月11日"
 output: html_document
 ---
-
+C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c10\\data\\
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -16,39 +16,41 @@ knitr::opts_chunk$set(echo = TRUE)
 3. 设定错误形式  Adopting the wrong functional form                  
 4. 测量误差  Errors of measurement              
 5. 随机扰动项错误设定  Incorrect specification of the stochastic error term             
-
-## 加入错误变量(过度拟合)
+        
+## 加入错误变量(过度拟合)       
 - 估计量偏差:系数估计量仍然无偏,且错误变量系数期望为0(不显著)     
 - 估计连方差: 尽管残差的方差仍然正确估计,一般的置信区间和假设检验也仍然可用,
 但是系数估计量的方差会比正确模型的方差更大      
-假设正确模型是:
+假设正确模型是:         
 $$
 Y_i=\beta_1+\beta_2X_{2i}+u_i
 $$      
-过度拟合模型是:
+过度拟合模型是:         
 $$
 Y_i=\alpha_1+\alpha_2X_{2i}+\alpha_3X_{3i}+u_i
 $$      
-正确设定模型方差:
+正确设定模型方差:               
 $$
 var(\hat{\beta}_2)=\frac{\sigma ^{2}}{\sum x_{2i}^{2}}
-$$
-过度拟合模型方差:
+$$              
+过度拟合模型方差:               
 $$
 var(\hat{\alpha}_2)=\frac{\sigma ^2}{\sum x_{2i}^{2}(1-r_{23}^{2})}
 $$       
 必须在遗漏变量和过度拟合中trade off 的话,选择过度拟合           
+
 ## 遗漏变量(拟合不足)   
 1. 如果遗漏的变量和保留变量有相关性,那么估计量全都有偏且不一致          
 2. 如果遗漏的变量和保留变量无关,那么无关的保留变量估计量无偏,而有关的以及截距项估计量有偏       
 3. 随机扰动项的方差错误估计     
 4. 估计量方差的估计量有偏       
-5. 预测值有偏且置信区间不可信   
+5. 预测值有偏且置信区间不可信           
+
 ## Ramsey's RESET       
 regression specification error test     
 检验fitted value $\hat{y}$的平方加入回归模型后是否显著.也可以用一个原自变量(regressors)的平方或者
 自变量矩阵X的第一主成份作为辅助变量     
-如果是一元回归,三种算法结果相同
+如果是一元回归,三种算法结果相同         
 ```{r}
 #install.packages("lmtest")
 library("lmtest")
@@ -61,4 +63,280 @@ resettest(y1 ~ x , power=2, type="regressor")
 resettest(y2 ~ x , power=2, type="regressor")
 ```
 
+# heteroscedasticy异方差                 
 
+同方差:随着样本观察点x的变化,线性模型中随机误差项的方差不改变,即$E(u_{i}^{2})=\sigma^{2}$,不随着i改变           
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\1.png)     
+异方差产生原因:                  
+1. 随机误差项包括了测量误差和模型中被省略的一些因素对因变量的影响       
+2. 来自不同抽样单元的因变量观察值之间差别很大   
+
+## 检验:        
+### 图示法      
+用残差做纵轴,因变量y的fitted value做横轴,图像发散或者收缩即为异方差(不严谨)                  
+
+### Gold-Quandt检验             
+条件:观察值数目至少是参数的两倍,随机项没有自相关且服从正态分布,并且异方差形式为$\sigma_{i}^{2} = \sigma^{2}X_{i}^{2}$.这样的话方差会随着x值增大而增大.       
+零假设:扰动项同方差             
+步骤:           
+1.将某个解释变量观测值按由小到大顺序排列,排列的中间约1/4的观测值去掉(去掉的个数c),把其余的观测值当作2部分         
+2.分别对2部分样本回归,计算相应残差平方和RSS,$RSS_1$表示x值比较小的部分样本的RSS,$RSS_2$表示x值比较大的部分样本的RSS               
+3. 统计量       
+$$F=\frac{RSS_1/[(n-c)/2]}{RSS_2/[(n-c)/2]}$$
+F服从自由度为$\frac{n-c}{2}-k,\frac{n-c-2k}{2}$的F分布,F值太大则拒绝原假设,认为不是同方差         
+c的取值30样本的时候选8,60个的时候选16较好               
+
+### white检验
+1. 原方程:$y_i=\beta_0+\beta_1x_i+u_i$          
+2. 辅助回归方程:$e_i^{2}=\gamma_0+\gamma_1x_i+\gamma_2x_i^{2}+v_i$              
+3. 假设:$H_0:\gamma_1=\gamma_2=0,H_A:\gamma_1 \neq 0 or \gamma_2 \neq 0$,     
+只要有一个辅助回归变量系数不为零就是异方差      
+4. 统计量:$nR^{2}$服从自由度为p的卡方分布,p为辅助变量数               
+
+2个自变量x的时候需要5个辅助回归变量,3个时候需要9个,以此类推(vech)         
+
+## 修正         
+异方差时OLS仍然无偏一致,仍然正确,但是非有效,只是系数标准差不正确,参数显著性检验失效,减低预测精度,置信区间不可用          
+1. $\sigma$已知的时候,GLS               
+原方程两边所有项同除以$\sigma_i$          
+换元重新估计即可(加权最小二乘估计)              
+2. 方差未知             
+异方差的系数方差和同方差的不同          
+用ei替代$\sigma_i$              
+带入异方差的系数方差公式,开根号后就是稳健标准差HCSE(beta),作为标准差用,样本量要够大              
+也可以取对数缓解                
+
+- GLS                   
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\2.png)       
+
+- WLS                   
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\3.png)         
+
+- HCV HCSE                      
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\4.png)         
+
+3. 例子         
+如果残差平方期望=$\sigma ^{2}x_{i}^{2}$,则同除以xi即可修正
+
+避免异方差方法:使不同变量的测度单位接近,比如总收入总消费数据,不同国家总量差距很大,应该取人均数据.或者取对数,缓解          
+
+## Example
+1.              
+```{r}
+#install.packages("lmtest")
+library(lmtest)
+#生成残差与x有关的数据(有异方差)
+x <- runif(100)
+y <- 1 - 2*x + .3*x*rnorm(100)
+plot(y~x)
+r <- lm(y~x)
+abline(r, col="red")
+title(main="Heteroscedasticity")
+#图示法
+plot(r$residuals ~ r$fitted.values)
+#G-Q检验
+gqtest(r)
+#B-P检验
+bptest(r)
+#white检验
+#构造辅助回归
+aux <- r$residuals^2
+aux_lm <- lm(aux ~ x + I(x^2))
+#nR2的卡方检验
+pchisq(length(x)*summary(aux_lm)$r.squared,df=2,lower.tail=F)
+#HCSE,看对角的元素.函数在car包内
+library(car)
+hccm(r)
+#同时有自相关异方差问题的解决方法
+library(sandwich)
+NeweyWest(r)
+```
+
+2.              
+```{r}
+nerlove<-read.csv("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c10\\data\\nerlove.csv")
+head(nerlove)
+r<-lm(lntc~lnq+lnpl+lnpk+lnpf,data=nerlove)
+summary(r)
+#检验异方差
+plot(r$residuals ~ r$fitted.values)
+library(lmtest)
+#B-P test
+bptest(r)
+#white test
+aux <- r$residuals^2
+aux_lm <- lm(aux ~ (lnq+lnpl+lnpk+lnpf)^2+I(lnq^2)+I(lnpl^2)
++I(lnpk^2)+I(lnpf^2),data=nerlove)
+summary(aux_lm)
+pchisq(length(nerlove$lnq)*summary(aux_lm)$r.squared,df=14,lower.tail=F)
+#NeweyWest,检验lnpk系数是否为0,vcov=NeweyWest(r)返回r模型中系数的HCSE矩阵
+#library(car)
+linearHypothesis(r, "lnpk = 0", vcov=NeweyWest(r))
+#上式检验统计量F的算法(用HCSE替代失效的SE)
+summary(r)
+names(r)
+library(sandwich)
+vv<-NeweyWest(r)
+#平方前是T检验算法,平方后成为F值
+(r$coefficients[4]/sqrt(vv[4,4]))^2
+#一次性用HCSE对全部系数做t检验
+coeftest(r, vcov = NeweyWest(r))
+#上式的SE算法
+sqrt(vv[4,4])
+```
+
+# 自相关
+扰动项与往期取值有关,相关系数为自相关系数,表示自相关程度和方向       
+OLS仍然是无偏一致非有效,OLS的方差有偏,T和F检验失效      
+
+## 原因    
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\5.png)     
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\6.png)   
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\7.png)   
+
+数学形式不妥     
+设定偏误        
+滞后效应(惯性)        
+略去了有关变量       
+比如       
+研究消费和收入关系,用只有季度数据没有年度消费数据,直接用季度平均做年数据     
+
+## 检验       
+```{r}
+wage<-read.csv("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c10\\data\\wage_2.csv",header=T)
+head(wage)
+r<-lm(Y~X,data=wage)
+summary(r)
+```
+
+### 图示法:y:et,x:et-1             
+```{r}
+#residuals
+head(r$residuals)
+#standardized residuals
+head(scale(r$residuals))
+#plot
+library(Hmisc)
+plot(scale(r$residuals)~Lag(scale(r$residuals)))
+abline(h=0,v=0)
+```     
+
+### durbin-watson检验     
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\8.png)   
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\9.png)    
+
+DW约等于2(1-r)          
+所以r1 0 -1 DW分别是0 2 4     
+查表后在上下限之间无法判断,0-2之间小的拒绝,大的接受,2-4之间小的接受,大的拒绝    
+
+#### 限制:     
+- 只能算1阶               
+- 有无法判断区域          
+- 无法判定过原点的模型            
+- 要求样本至少15          
+- 不适合自回归模型(自变量包含因变量滞后项)                
+- 误差项假设服从正态              
+- 不能有缺失值            
+```{r}
+library(car)
+durbinWatsonTest(r)
+```             
+
+#### durbin-h统计量:            
+允许自变量包含因变量滞后期      
+
+### breusch-godfrey(BG)检验     
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c10\10.png)     
+
+OLS回归后计算残差,用et对et-1到et-p回归   
+零假设:全是0    
+统计量TR2 卡方(p)    
+```{r}
+library(lmtest)
+bgtest(r)
+bgtest(r,order=3)
+```
+
+If after applying one or more of the diagnostic tests of autocorrelation discussed in the previous section, we
+find that there is autocorrelation, we have three options:              
+1. Try to find out if the autocorrelation is pure autocorrelation and not the result of mis-specification of
+the model. Sometimes we observe patterns in residuals because the model is misspecified— that is, it
+has excluded some important variables—or because its functional form is incorrect.
+2. If it is pure autocorrelation, one can use appropriate transformation of the original model so that
+in the transformed model we do not have the problem of (pure) autocorrelation. As in the case of
+heteroscedasticity, we will have to use some type of generalized least-square (GLS) method.
+3. In large samples, we can use the Newey–West method to obtain standard errors of OLS estimators that
+are corrected for autocorrelation. This method is actually an extension of White’s heteroscedasticityconsistent
+standard errors method.                 
+
+## 修正方法:   
+### GLS         
+$$Y_t=\beta_0+\beta_1X_t+u_t$$          
+$$u_t=\rho_1 u_{t-1}+\epsilon_t$$        
+
+#### 相关系数已知  
+$$Y_{t-1}=\beta_0+\beta_1X_{t-1}+u_{t-1}$$      
+两边同乘以$\rho$        
+$$\rho Y_{t-1}=\rho \beta_0+\rho \beta_1X_{t-1}+\rho u_{t-1}$$      
+两式相减:               
+$$Y_t-\rho Y_{t-1}=\beta_0-\rho \beta_0+\beta_1X_t-\rho \beta_1X_{t-1}+u_t-\rho u_{t-1}$$       
+$$Y_t-\rho Y_{t-1}=\beta_0(1-\rho)+\beta_1(X_t-\rho X_{t-1})+\epsilon_t$$       
+$$Y_{t}^{*}=\beta_{0}^{*}+\beta_{1}X_{t}^{*}+\epsilon_t$$       
+转化后直接回归即可,其中第一个项转换为$Y_{1}\sqrt{1-\rho^{2}},X_{1}\sqrt{1-\rho^{2}}$            
+
+#### 相关系数未知                  
+##### cochrane-orcutt法       
+$$y_t=\beta_0+\beta_1x_1+.....+u_t......(1)$$
+$$u_t=\rho u_{t-1}+v_t$$       
+1. OLS计算残差$e_t=y_t-\hat{y_t}$        
+2. 用残差回归$e_t=\rho e_t-1+v_t$计算$\hat{\rho}$               
+用$\hat{\rho}$同时乘以(1)lag的两边后再减掉(1)      
+$$y_t-\hat{\rho}y_{t-1}=\beta_0(1-\hat{\rho})+\beta_1(x_t-\hat{\rho}x_{t-1})+...+u_t-\hat{\rho}u_{t-1}$$         
+$$y_t'=\beta_0'+\beta_1 x_t'+...+\epsilon_t'$$          
+$\epsilon_t'$用$e_t=\hat{\rho} e_{t-1}$代替              
+重复进行直到不存在1阶自相关(DW检验不显著)       
+
+```{r}
+library(Hmisc)
+e<-lm(r$residual~Lag(r$residual)-1)
+summary(e)
+X1<-wage$X-e$coefficients*Lag(wage$X)
+Y1<-wage$Y-e$coefficients*Lag(wage$Y)
+rr<-lm(Y1~X1)
+summary(rr)
+library(car)
+durbinWatsonTest(rr)
+```
+
+##### NEWEY-WEST法      
+计算正确的(修正的)标准误:HAC (heteroscedasticity- and autocorrelation-consistent) standard errors或者叫Newey–West standard errors               
+大样本下可同时修正异方差和自相关带来的非有效问题(white方法只能用于异方差)               
+```{r}
+r<-lm(Y~X,data=wage)
+summary(r)
+library(sandwich) #Newey & West (1987, 1994)
+library(lmtest) #coeftest
+coeftest(r, vcov = NeweyWest(r))
+coeftest(r, vcov = vcovHAC)
+```
+
+## example      
+```{r}
+library(Hmisc)
+library(car)
+wage2<-read.csv("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c10\\data\\Exercise_au.csv",header=T)
+head(wage2)
+r<-lm(Y~X,data=wage2)
+summary(r)
+#acf(r$residual)
+#pacf(r$residual)
+durbinWatsonTest(r)
+e<-lm(r$residual~Lag(r$residual)-1)
+summary(e)
+#y_{t}'=y_{t}-\hat{\rho y_{t-1}}
+X1<-wage2$X-e$coefficients*Lag(wage2$X)
+Y1<-wage2$Y-e$coefficients*Lag(wage2$Y)
+rr<-lm(Y1~X1)
+summary(rr)
+durbinWatsonTest(rr)
+```

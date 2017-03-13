@@ -1,0 +1,127 @@
+---
+title: "Chinese Yuan and Stock Market 6-3"
+author: "Elara"
+date: "2016年5月14日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+strucTS()
+forecast package
+dlm package
+three try offer?
+# China Stock Market Index: Shanghai Common Stock               
+Time Series Exponential Smoothing, using structTS               
+```{r}
+# Using Quandl API to search and retrieve data series
+# install.packages("Quandl")
+library(Quandl)
+# SP500<-Quandl(code="YAHOO/INDEX_GSPC",type="xts") 
+# xts or zoo type should be used for daily high frequency data
+# frequency conversion for xts type: apply.xxx
+# xxx=yearly, quartertly, monthly, weekly
+#SSEC<-Quandl(code="YAHOO/INDEX_SSEC",type="xts") 
+# daily price index: irregularly-spaced time series
+load("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\big data\\case6\\SP500 and SSEC.RData")
+data<-SSEC[,"Adjusted Close"]
+summary(data)
+plot(data)
+```
+
+# monthly average: regularly-space time series(daily is not regularly)
+```{r}
+mdata<-ts(apply.monthly(data,mean),start=c(1997,7),frequency=12)#monthly price
+plot(mdata)
+
+# daily returns in percent
+rd<-na.omit(100*diff(log(data)))#daily returns
+rm<-ts(apply.monthly(rd,sum),start=c(1997,7),frequency=12)#monthly return
+plot(rm,main="Monthly Log Returns",ylab="Percent")
+
+# rv<-ts(apply.monthly(rd^2,sum),start=c(1997,7),frequency=12)
+```
+
+# select variable, setup train and test data 
+```{r}
+Y<-rm #monthly return
+Y.train<-window(Y,end=c(2014,12)) #use data until 2014.12 as training data
+Y.test<-window(Y,start=c(2015,1)) #use data from 2015.1 as testing data
+```
+
+# using StrucTS(based on training data)
+```{r}
+sts1<-StructTS(Y.train,"level")
+sts1$coef
+plot(sts1$fitted)
+
+sts2<-StructTS(Y.train,"trend")
+sts2$coef
+plot(sts2$fitted)
+
+sts3<-StructTS(Y.train,"BSM")
+sts3$coef
+plot(sts3$fitted)
+```
+
+# h-step ahead forecasts
+```{r}
+for1<-predict(sts1,n.ahead=30)#30-step ahead
+for2<-predict(sts2,n.ahead=30)
+for3<-predict(sts3,n.ahead=30)
+for3
+```
+
+# a function to compute forecast error statistics(how good is this forecast)
+![](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\6.3.1.png)       
+![](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\6.3.2.png)           
+![](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\6.3.3.png)          
+![](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\6.3.4.png)          
+```{r}
+predict.error<-function(x,p) {
+  data<-ts.intersect(x,p) #Bind time series which have a common frequency. restricts to the time covered by all the series.
+  x<-data[,"x"]#real
+  p<-data[,"p"]#fitted
+  e<-x-p                           # prediction error
+  mx<-mean(x)#mean of real
+  mp<-mean(p)#mean of fitted
+  sx<-sqrt(mean((x-mx)^2))#sd of real
+  sp<-sqrt(mean((p-mp)^2))#sd of fitted
+  r<-mean((x-mx)*(p-mp))/(sx*sp)#covariance of x and p, r<-cor(x,p)
+  #round(data,p)四舍五入,保留p位小数
+  MSE<-round(mean(e^2),4)                   # mean squared error,e=real-fitted
+  # results list
+  r2<-round(r^2,4) #cor(x,p)^2,R2
+  ME<-round(mean(e),4)                      # mean error
+  MAE<-round(mean(abs(e)),4)                # mean absolute error
+  MAPE<-round(100*mean(abs(e/x)),4)         # mean absolute error%
+  RMSE<-round(sqrt(MSE),4)                  # root mean squared error
+  RMSPE<-round(100*sqrt(mean((e/x)^2)),4)   # root mean squared error%
+  # MSE Decomposition in percent
+  Um<-round(100*((mx-mp)^2)/MSE,4) #mx:mean of real,mp:mean of fitted,期望偏差平方占比(bias proportion)
+  Us<-round(100*((sx-sp)^2)/MSE,4)# sx:sd of real,sp:sd of fitted,标准差偏差占比(variance proportion)
+  Uc<-round(100*(2*(1-r)*sp*sx)/MSE,4) #相关系数占比(covariance proportion)
+  Ur<-round(100*((sp-r*sx)^2)/MSE,4) #regression proportion
+  Ud<-round(100*((1-r^2)*sx^2)/MSE,4) #disturbance proportion
+  results<-c(ME,MAE,MAPE,MSE,RMSE,RMSPE,Um,Us,Uc,Ur,Ud,r2)
+  names(results)<-c("ME","MAE","MAPE","MSE","RMSE","RMSPE","Um%","Us%","Uc%","Ur%","Ud%","r2")
+  return(results)
+}
+```
+
+# prediction error statistics
+```{r}
+predict.error(Y.test,for1$pred)
+predict.error(Y.test,for2$pred)
+predict.error(Y.test,for3$pred)
+
+plot(Y.test)
+lines(for3$pred)
+lines(for2$pred,col="green")
+lines(for1$pred,col="red")
+```
+
+#why we predict though it is wrong?
+want to improve the model.until one day it is powerful enough to predict or explain the real world
+

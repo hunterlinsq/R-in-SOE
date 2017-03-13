@@ -8,18 +8,20 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-# Xavier X. Sala-I-Martin: I Just Ran Two Million Regression (AER, 1997)
-# Growth Convergence of 72 countries with 41 variables
-# Principal Components Analysis
+Xavier X. Sala-I-Martin: I Just Ran Two Million Regression (AER, 1997)          
+Growth Convergence of 72 countries with 41 variables            
+Principal Components Analysis           
 # setwd("C:/Course16/WISE2016/R")
 http://web.pdx.edu/~crkl/WISE2016/data/FLS-data.csv
-growth <- read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
+```{r}
+#growth <- read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
 growth <- read.csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
 summary(growth)
+```
 
-# principal components analysis
-# working with data matrices
+# principal components analysis主成份分析算法
+```{r}
+#working with data matrices
 X <- as.matrix(growth[,-1])
 Y <- as.matrix(growth[,1])
 
@@ -29,12 +31,12 @@ R <- cor(X)
 # find eigenvalues and eigenvectors of R
 EV <- eigen(R)
 str(EV)
-# EV$Values are the variances of PC
-# EV$Vectors are the loadings
+# EV$Values are the variances of PC特征值是主成份的方差
+# EV$Vectors are the loadings特征向量是主成份的载荷
 PCsd <- sqrt(EV$values)
 PCloadings <- EV$vectors
 rownames(PCloadings) <- colnames(X)
-
+#主成份得分
 PCscores <- X %*% PCloadings
 print(PCsd)
 print(PCloadings)
@@ -48,34 +50,43 @@ text(PCloadings[,1]*3*1.2,PCloadings[,2]*3*1.2,
      rownames(PCloadings), col="red", cex=0.7)
 text(PCscores[,1],PCscores[,2], rownames(PCscores), col="blue",
      cex=0.7)
+```
 
-# principal components analysis
+# principal components analysis主成份分析(基于函数)
 # using princomp, prcomp, factanal packages
-# data will be scaled in computation
-
+# data will be scaled in computation数据会被自动标准化
+```{r}
 # PCA on X
 pca <- princomp(X, cor=TRUE)
 summary(pca)
 pca$scores
 pca$loadings
+#第一主成份的各个国家(样本)得分
 plot(pca$scores[,1])
 barplot(pca$scores[,1])
-
+#用第1-12个主成份的得分代表各个样本进行回归
 reg1 <- lm(Y~pca$scores[,1:12])
 summary(reg1)
-
+#用第21-41个主成份的得分代表各个样本进行回归
 reg2 <- lm(Y~pca$scores[,21:41])
 summary(reg2)
+```
 
-# using prcomp package
+# using prcomp package主成份分析(基于包)
 # data must be scaled, otherwise set center and scale.
+```{r}
 prc <- prcomp(X)
 summary(prc)
+#特征值根号
 prc$sdev
+#载荷
 prc$rotation  # loadings
+#得分
 prc$x         # scores
+```
 
-#using factanal package
+#using factanal package(基于包-因子分析模型)
+```{r}
 fa <- factanal(X, factors=12, scores="regression")
 summary(fa)
 fa$loadings
@@ -83,4 +94,4 @@ fa$scores
 
 reg3 <- lm(Y~fa$scores)
 summary(reg3)
-
+```

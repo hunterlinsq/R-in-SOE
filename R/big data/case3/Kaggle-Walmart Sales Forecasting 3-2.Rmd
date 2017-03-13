@@ -10,29 +10,35 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Walmart Sales
-# Regression Analysis
-#
+Regression Analysis
+```{r}
 library(readr)
 # Store Dept Date Weekly_Sales IsHoliday: 2010-02-05 ~ 2012-10-26
-data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
+#data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
 data1<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_train.csv")
 # Store Type Size
-data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
+#data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
 data2<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_stores.csv")
 # Store Date Temperature Fuel_Price Markdown1-5 CPI Unemplyment IsHoliday
-data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
+#data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
 data3<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_features.csv")
 # Store Dept Date IsHoliday: 2012-11-02 ~ 2013-07-26
-data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
+#data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
 data4<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_test.csv")
-
+head(data1)#train
+head(data2)#store
+head(data3)#features
+head(data4)#test
 # 2010-02-05 ~ 2012-10-26
 train<-merge(data1,merge(data2,data3))
 # 2012-11-02 ~ 2013-07-26
 test<-merge(data4,merge(data2,data3))
 
-rm(data1,data2,data3,data4,test)
+#rm(data1,data2,data3,data4,test)
+```
+
 # Analysis for train data only
+```{r}
 summary(train)
 dim(train)
 
@@ -67,4 +73,4 @@ anova(m1,m2)
 m3<-update(m2,.~.+MarkDown1+MarkDown2+MarkDown3+MarkDown4+MarkDown5)
 summary(m3)
 anova(m2,m3)
-
+```

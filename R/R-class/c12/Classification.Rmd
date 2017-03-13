@@ -1,0 +1,244 @@
+---
+title: "Classification"
+author: "Elara"
+date: "2016年5月20日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# logistic regression   
+$$p(Y=1|X)=\beta_0+\beta_{1}X$$
+左边0-1右边不一定0-1,不好       
+$$
+logit(p)=log(\frac{p}{1-p})=log(\Omega)=\beta_0+\beta_{1}X
+$$
+左边变成负无穷到正无穷,可以使用,左边叫做对数发生比         
+其中$p=u_Y$是Y的条件均值(即给定X的取值,Y=1的概率)                              
+$$
+p(X)=\frac{exp(\beta_0+\beta_{1}X)}{(1+exp(\beta_0+\beta_{1}X))}
+$$      
+
+## example
+```{r}
+library("faraway")
+data(pima, package="faraway")
+head(pima)
+b <- factor(pima$test)
+head(b)
+#模型构建(训练)
+#family,二元,link,logit->二元logit模型
+m <- glm(b ~ diastolic + bmi, family=binomial(link="logit"), data=pima)
+summary(m)
+#系数代表的是X变化对与对数发生比的影响
+#只用bmi回归因为diastolic不显著,binomial默认是logit不写也行
+m.red <- glm(b ~ bmi, family=binomial, data=pima)
+summary(m.red)
+#预测
+#1 求p(X) Y=1的概率(bmi=32,输入需要用data.frame)
+newdata <- data.frame(bmi=32.0)
+#type用response,出来的结果是p(x),给定X,Y=1的概率
+predict(m.red, type="response", newdata=newdata)
+#2 验证p(X)结果正确
+E<-exp(-3.68641+0.09353*32)
+E/(1+E)
+# According to this model, the probability is about 33.3%. The same calculation for someone in the 90th percentile gives a probability of 54.9%
+# 选择bmi的90%分位数(41.5)
+newdata <- data.frame(bmi=quantile(pima$bmi, .90))
+predict(m.red, type="response", newdata=newdata)
+
+```
+
+#exercise
+```{r}
+SoftDrink<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c12\\data\\SoftDrink.txt",header=TRUE)
+head(SoftDrink)
+SoftDrink$Choice<-as.factor(SoftDrink$Choice)
+#去掉品牌
+Fit<-glm(Choice~.-Brand,data=SoftDrink,family=binomial(link="logit"))
+summary(Fit)
+#只留下calories和fruits
+Fit<-glm(Choice~.-Brand-Price-Fat-Age-Vitamin,data=SoftDrink,family=binomial(link="logit"))
+summary(Fit)
+coef(Fit)
+#卡路里提高一单位,可以让对数发生比平均减少0.017单位
+exp(coef(Fit))
+#卡路里提高一单位,可以让发生比(优势比或购买意向)变成原来的0.9830543
+```
+
+# cluster analysis       
+##Hierarchical Clustering       
+系统聚类 层次聚类,点之间用欧式距离               
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c12\1.png)    
+
+###Interpreting a Dendrogram    
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c12\2.png)    
+
+分类的类数不同          
+![](C:\Users\44180\Documents\R-in-SOE\R\R-class\c12\3.png)    
+
+###Linkage (distance) between Cluster Pairs                   
+类间距离
+1. Nearest neighbor (single linkage).最小距离法         
+If you use the nearest neighbor method to form clusters, the distance between two clusters is defined
+as the smallest distance between two cases in the different clusters.           
+2个类中距离最近的元素的距离作为类间距离         
+2. Furthest neighbor (complete linkage).最大距离法              
+If you use a method called furthest neighbor (also known as complete linkage), the distance between
+two clusters is defined as the distance between the two furthest points.                
+2个类中距离最远的元素的距离作为类间距离                 
+3. Average method.平均法                
+Mean intercluster dissimilarity. Compute all pairwise dissimilarities between the observations in cluster
+A and the observations in cluster B, and record the average of these dissimilarities.           
+计算2个类中所有点组合的距离,取平均              
+4. Centroid method.中心法     
+This method calculates the distance between two clusters as the sum of distances between cluster
+means for all of the variables. In the centroid method, the centroid of a merged cluster is a weighted
+combination of the centroids of the two individual clusters, where the weights are proportional to the
+sizes of the clusters. One disadvantage of the centroid method is that the distance at which clusters
+are combined can actually decrease from one step to the next. This is an undesirable property because
+clusters merged at later stages are more dissimilar than those merged at early stages.                  
+计算各个类中各个变量的均值,用这些均值在不同类之间的距离和作为类间距离.已经合并的类用他们的均衡根据类大小加权均值作为合并类的均值.       
+缺点:距离随着类越来越大会缩减.          
+
+###example
+```{r}
+# 1
+#Calculate
+x<-c(1,2,6,8,11); dim(x)<-c(5,1)
+d<-dist(x)
+hc1<-hclust(d, "single"); hc2<-hclust(d, "complete")
+hc3<-hclust(d, "median"); hc4<-hclust(d, "mcquitty")
+#Plot
+opar <- par(mfrow = c(2, 2))
+plot(hc1,hang=-1); plot(hc2,hang=-1)
+plot(hc3,hang=-1); plot(hc4,hang=-1)
+par(opar)
+
+# 2 
+#各省数据
+PoData<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c12\\data\\PollutionData1.txt",header=TRUE)
+#只拿数据部分
+CluData<-PoData[,2:7]
+head(CluData)
+###Hierarchical Clustering层次聚类
+#计算欧式距离矩阵
+DisMatrix<-dist(CluData,method = "euclidean")#欧式距离
+DisMatrix
+#用ward.D方法聚类
+CluR<-hclust(d=DisMatrix,method="ward.D")
+#Graph_1
+plot(CluR,labels=PoData[,1])
+box()#图加框
+#Graph_2 类内距离与剩余类数的关系.例如类内距离200左右,归为3类,差值代表再多合并一次(减少一类)所要增加的类内距离.
+plot(CluR$height,30:1,type="b",cex=0.7,xlab="Distance",ylab="Number of Cluster",main="Scree Plot")
+
+# 3
+# 画type-elements图
+PoData$memb<-cutree(CluR,k=4)
+View(PoData)
+table(PoData$memb)
+plot(PoData$memb,pch=PoData$memb,ylab="Type",xlab="province",main="4 clusters",axes=FALSE)
+par(las=2)
+axis(1,at=1:31,labels=PoData$province,cex.axis=0.6)
+axis(2,at=1:4,labels=1:4,cex.axis=0.6)
+box()
+```
+
+## K-means Clustering           
+要先分配类别个数K       
+
+### 选定类中心  
+1. 经验选择法            
+2. 最大最小法:选择观测点中距离最远的两个点作为类中心        
+
+### 聚类                
+1. 计算每个观测点到类中心的距离         
+2. 距离哪个类中心近,就归类到那一类           
+3. 重新根据分类好的类别,分别计算各自的类中心        
+4. 按照新的类中心重复1,2,3步    
+5. 直到第N次类中心和N-1次类中心距离几乎为0,说明完成收敛            
+
+### example1    
+```{r}
+# 生成2列100对正态分布数据N(0,0.09)和N(1,0.09),分成2组,每组50对
+x <- rbind(matrix(rnorm(100, sd = 0.3), ncol = 2),
+matrix(rnorm(100, mean = 1, sd = 0.3), ncol = 2))
+# K均值聚类(2类)
+cl <- kmeans(x, 2)
+cl
+# 分色标点
+plot(x, col = cl$cluster, pch=3, lwd=1)
+# 标识类中心
+points(cl$centers, col = 1:2, pch = 7, lwd=3)
+#连接类中心和各个点
+segments( x[cl$cluster==1,][,1], x[cl$cluster==1,][,2],cl$centers[1,1], cl$centers[1,2])
+segments( x[cl$cluster==2,][,1], x[cl$cluster==2,][,2],cl$centers[2,1], cl$centers[2,2],
+col=2)
+```
+
+### example2    
+```{r}
+# 鸢尾花数据
+newiris <- iris
+head(newiris)
+# 去掉种类数据
+newiris$Species <- NULL
+# 3类K均值聚类
+kc <- kmeans(newiris, 3)
+names(kc)
+#显示结果
+kc$cluster
+#行名是真实类,列名是k均值分类,每个数字表示行的真实类被分到第k类的数量
+table(iris$Species, kc$cluster)
+#重复聚类结果不同
+kc <- kmeans(newiris, 3)
+table(iris$Species, kc$cluster)
+```
+
+# example3
+```{r}
+#污染数据k均值聚类
+PoData<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c12\\data\\PollutionData1.txt",header=TRUE)
+CluData<-PoData[,2:7]
+set.seed(12345)
+CluR<-kmeans(x=CluData,centers=4,nstart=4,iter.max=10)
+CluR$size
+CluR$centers
+#绘图
+# opar<-par(no.readonly = TRUE)
+# par(mfrow=c(2,1))
+#Graph_1 type-elements graph
+PoData$CluR<-CluR$cluster
+plot(PoData$CluR,pch=PoData$CluR,ylab="Type",xlab="province",main="4 clusters",axes=FALSE)
+par(las=2)
+axis(1,at=1:31,labels=PoData$province,cex.axis=0.6)
+axis(2,at=1:4,labels=1:4,cex.axis=0.6)
+box()
+legend("topright",c("Type1","Type2","Type3","Type4"),pch=1:4,cex=0.6)
+
+#Graph_2 每类在各种排放物的排放量上的特点
+plot(CluR$centers[1,],type="l",ylim=c(0,82),xlab="Variables",ylab="Average of cluster (K centroid)",main="line chart",axes=FALSE)
+axis(1,at=1:6,labels=c("sanitary sewage","SO2","Smoke","Industrial solid waste",
+"industrial waste gas","industrial waste water"),cex.axis=0.6)
+box()
+lines(1:6,CluR$centers[2,],lty=2,col=2)
+lines(1:6,CluR$centers[3,],lty=3,col=3)
+lines(1:6,CluR$centers[4,],lty=4,col=4)
+legend("topleft",c("Type1","Type2","Type3","Type4"),lty=1:4,col=1:4,cex=0.6)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+

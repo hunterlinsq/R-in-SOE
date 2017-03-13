@@ -10,25 +10,31 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Walmart Sales
-# Fill in all missing values to prepare for forecast
-# Using Panel Data Structure to extract time series
-# Using last week's sale to improve the model, but difficult to forecast
-#
+Fill in all missing values to prepare for forecast     
+Using Panel Data Structure to extract time series         
+Using last week's sale to improve the model, but difficult to forecast       
+```{r}
 library(readr)
 # Store Dept Date Weekly_Sales IsHoliday: 2010-02-05 ~ 2012-10-26
-data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
+#data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
 data1<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_train.csv")
 # Store Type Size
-data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
+#data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
 data2<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_stores.csv")
 # Store Date Temperature Fuel_Price Markdown1-5 CPI Unemplyment IsHoliday
-data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
+#data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
 data3<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_features.csv")
 # Store Dept Date IsHoliday: 2012-11-02 ~ 2013-07-26
-data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
+#data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
 data4<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_test.csv")
+head(data1)#train
+head(data2)#store
+head(data3)#features
+head(data4)#test
+```
 
 # Need to fill missing values in data3
+```{r}
 # (1) MarkDown1~5 are misterious with lots of missings
 data3$MarkDown1[is.na(data3$MarkDown1)]<-0
 data3$MarkDown2[is.na(data3$MarkDown2)]<-0
@@ -51,13 +57,15 @@ train$Date<-as.Date(train$Date)
 train$Store<-as.factor(train$Store)
 train$Dept<-as.factor(train$Dept)
 train$Type<-as.factor(train$Type)
+```
 
 # Analysis for train data only
+```{r}
 library(plm)
 # using panel data frame to create lag variables
 train$ID<-paste(train$Store,train$Dept,sep="_")
 train.pd<-pdata.frame(train,c("ID","Date"))
-train.pd$Weekly_Sales1<-lag(train.pd$Weekly_Sales,1)
+train.pd$Weekly_Sales1 <- lag(train.pd$Weekly_Sales,1)
 
 # using OLS with Store and Dept dummy variables
 m1<-lm(Weekly_Sales~Store+Dept+Weekly_Sales1
@@ -67,4 +75,4 @@ summary(m1)
 
 # Forecasting will be difficult, because Weekly_Sale1 must be forecasted first
 # as part of predictors...
-
+```

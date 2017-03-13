@@ -9,25 +9,29 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# TOTAL WEEKLY SALES OF IMPORT AND DOMESTIC NON VQA RED & WHITE TABLE WINE 
-# WITHIN MUNICIPALITY OF VANCOUVER IN UNITS AND LITRES
-# FROM WEEK ENDING APRIL 4, 2009 TO WEEK ENDING MAY 28, 2011
-# Fast Read from CSV file: read_csv
-# install.packages("readr")
-# 
+TOTAL WEEKLY SALES OF IMPORT AND DOMESTIC NON VQA RED & WHITE TABLE WINE 
+WITHIN MUNICIPALITY OF VANCOUVER IN UNITS AND LITRES
+FROM WEEK ENDING APRIL 4, 2009 TO WEEK ENDING MAY 28, 2011
+Fast Read from CSV file: read_csv
+
 # Data Analysis
+```{r}
+# install.packages("readr")
 # library(readr) 
 # wine<-read_csv("http://web.pdx.edu/~crkl/ec510/data/Vancouver_Non_VQA_Sls_Apr1toMay31.csv",na="NA")
 # wine<-read_csv("C:/Course16/EC510/data/Vancouver_Non_VQA_Sls_Apr1toMay31.csv",na="NA")
 # wine<-read_excel("C:/Course16/EC510/data/Vancouver_Non_VQA_Sls_Apr1toMay31.xlsx",sheet=2)
 library(readr) 
 # wine<-read_csv("http://web.pdx.edu/~crkl/WISE2016/data/Vancouver_Non_VQA_Sls_Apr1toMay31.csv",na="NA")
-wine<-read_csv("C:/Course16/WISE2016/data/Vancouver_Non_VQA_Sls_Apr1toMay31.csv",na="NA")
+# wine<-read_csv("C:/Course16/WISE2016/data/Vancouver_Non_VQA_Sls_Apr1toMay31.csv",na="NA")
 load("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\big data\\case2\\wine.RData")
 dim(wine)
 names(wine)
 summary(wine)
+```
 
+#数据整理       
+```{r}
 wine$where<-wine$`Store Category Sub Name`    # import from ...
 wine$what<-factor(wine$`Store Category Minor Name`)   # Red or White
 wine$loc<-factor(wine$`Bottled Location Code`)
@@ -39,14 +43,18 @@ wine$quantity<-wine$`Total Weekly Selling Unit`
 # sweet<-wine$`Product Sweetness Code`
 # age<-wine$`Julian Week No`
 # import<-factor(wine$`Domestic/Import Indicator`)
+```
 
 # using table, xtabs, aov
-# xtabs(~ where + what,data=wine)
+```{r}
+xtabs(~ where + what,data=wine)
 t1<-with(wine,table(where,what))
 t1
 summary(t1)
+```
 
-# price analysis
+# price analysis        
+```{r}
 t2<-with(wine,table(where,price_level))
 t2
 summary(t2)
@@ -55,12 +63,14 @@ t3<-with(wine,table(what,price_level))
 t3
 summary(t3)
 
-# xtabs(~ where + price_level + what,data=wine)
+xtabs(~ where + price_level + what,data=wine)
 t4<-with(wine,table(where,price_level,what))
 t4
 summary(t4)
+```
 
-# analysis of variance with category variables
+# analysis of variance with category variables          
+```{r}
 a1<-aov(price~what,data=wine)
 a1
 summary(a1)
@@ -72,16 +82,23 @@ summary(a2)
 a3<-aov(price~where+what,data=wine)
 a3
 summary(a3)
+```
 
-# same as anova from lm fit
+# same as anova from lm fit     
+```{r}
 m1<-lm(price~where+what,data=wine)
 summary(m1)
 anova(m1)
+```
 
 # demand analysis
+```{r}
 m2<-lm(quantity~price,data=wine)
 summary(m2)
-m3<-lm(log(quantity)~log(price),data=wine,subset=(quantity>0))
+m3<-lm(quantity~log(price),data=wine,subset=(quantity>0))
+wineq <- subset(wine,quantity>0)
+#m3<-lm(log(quantity)~log(price),data=wine,subset=(quantity>0))
+m3<-lm(log(quantity)~log(price),data=wineq)
 summary(m3)
 m4<-update(m3, . ~ . + loc+`Alcohol Percent`+`Julian Week No`)
 summary(m4)

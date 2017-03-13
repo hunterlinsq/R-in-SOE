@@ -8,53 +8,91 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+Xavier X. Sala-I-Martin: I Just Ran Two Million Regression (AER, 1997)
+Growth Convergence of 72 countries with 41 variables
 
-# Xavier X. Sala-I-Martin: I Just Ran Two Million Regression (AER, 1997)
-# Growth Convergence of 72 countries with 41 variables
 # Ridge Regression
-# OLS: min SSE(b) = sum((Y-b0-Xb)^2)
-# Ridge: min SSE(b) + lambda*||b||
+- OLS: min SSE(b) = sum((Y-b0-Xb)^2)
+- Ridge: min SSE(b) + lambda*||b||
 # setwd("C:/Course16/WISE2016/R")
 http://web.pdx.edu/~crkl/WISE2016/data/FLS-data.csv
-growth <- read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
+```{r}
+#growth <- read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
 growth <- read.csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
 summary(growth)
+```
 
 # working with data matrices (not standardized)
+```{r}
 X <- as.matrix(growth[,-1])
 Y <- as.matrix(growth[,1])
-
+```
 # Ridge Regression
+```{r}
 library(MASS)
 m<-lm.ridge(y ~ .,data=growth,lambda=seq(0,0.1,0.0001))
+#选择最佳lambda
 select(m)
+#根据最小GCV设定lambda
 s<-m$lambda[which.min(m$GCV)]
+#用设定的lambda岭回归
 r1<-lm.ridge(y ~ .,data=growth,lambda=s)
 r1
+```
 
+# lars包-lar模型(Least Angle Regression)        
+- for linear regression (not for logit)         
+- can do stepwise and cv                
+- can do ridge and cv                                   
+- can do lasso and cv           
+
+# forward stepwise regression,normalize
+```{r}
+#install.packages("lars")
 library(lars)
-# for linear regression (not for logit)
-# can do stepwise and cv 
-# can do ridge and cv
-# can do lasso and cv
-
-# forward stepwise regression,normalize是否标准化
+#forward stepwise regression方法,非标准化
 m0 <- lars(X,Y,type="step",trace=T,normalize=F)
 summary(m0)
+#加入的变量越多,标准化系数扩散越大
 plot(m0)
+#找出Cp最小的模型
 m0.coef<-coef(m0,s=which.min(m0$Cp))
+#模型系数
 m0.coef[m0.coef!=0]
-# cross-validation to pick lambda step
+```
+
+# stepwise regression,normalize
+```{r}
+#install.packages("lars")
+library(lars)
+#stepwise regression方法,非标准化
+m0 <- lars(X,Y,type="for",trace=T,normalize=F)
+summary(m0)
+#加入的变量越多,标准化系数扩散越大
+plot(m0)
+#找出Cp最小的模型
+m0.coef<-coef(m0,s=which.min(m0$Cp))
+#模型系数
+m0.coef[m0.coef!=0]
+```
+
+# cross-validation to pick lambda step通过交叉验证选择lambda
+```{r}
 # set.seed(2016) for 3-fold CV (note: total obs. is 72 only)
+#交叉验证,数据分3块,非标准化,会给出每个步骤MSE(针对forward stepwise regression,normalize)
 m0cv <- cv.lars(X,Y,K=3,type="step",normalize=F)
+#选出cv最小的作为最佳方程
 best<-which.min(m0cv$cv)
 best
 m0cv$index[best]
 # m0cv.coef<-coef(m0,s=m0cv$index[which.min(m0cv$cv)])
 m0cv.coef<-coef(m0,s=which.min(m0cv$cv))
+#给出模型系数
 m0cv.coef[m0cv.coef!=0]
+```
 
-# ridge regression
+# ridge regression(基于lars包)
+```{r}
 m1 <- lars(X,Y,type="lar",trace=T,normalize=F)
 summary(m1)
 plot(m1)
@@ -68,8 +106,10 @@ m1cv$index[best]
 # m1cv.coef<-coef(m1,s=m1cv$index[which.min(m1cv$cv)])
 m1cv.coef<-coef(m1,s=which.min(m1cv$cv))
 m1cv.coef[m1cv.coef!=0]
+```
 
 # lasso
+```{r}
 m2 <- lars(X,Y,type="lasso",trace=T,normalize=F)
 summary(m2)
 plot(m2)
@@ -81,14 +121,15 @@ best<-which.min(m2cv$cv)
 best
 m2cv$index[best]
 
-m2cv.coef<-coef(m2,s=m2cv$index[which.min(m2cv$cv)])
+# m2cv.coef<-coef(m2,s=m2cv$index[which.min(m2cv$cv)])
 m2cv.coef<-coef(m2,s=which.min(m2cv$cv))
 m2cv.coef[m2cv.coef!=0]
+```
 
 # compare with stepwise regression results
-# variables selected may be different:
-# Step: 
-# Ridge:
-# LASSO: 相对来说变量偏少
+- variables selected may be different:
+- Step: 
+- Ridge:
+- LASSO: 相对来说变量偏少
 
 

@@ -9,43 +9,56 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# AmEx Credit Scoring and DEFAULT
-# DEFAULT|CARDHLDR ~ AGE+INCOME+OWNRENT+SELFEMPL+ACADMOS, used by Greene's lecture
+AmEx Credit Scoring and DEFAULT
+DEFAULT|CARDHLDR ~ AGE+INCOME+OWNRENT+SELFEMPL+ACADMOS, used by Greene's lecture
+```{r}
 # setwd("C:/Course16/WISE2016/R")
-AmEx<-read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
-AmEx<-read.csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
+#AmEx<-read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
+ AmEx<-read.csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case5\\AmEx.csv")
 # exclude<-c(1,2,"BANKBOTH","CREDGAS","UNEMP","DRUGSTOR")
-# DEFAULT|CARDHLDR=1
+# DEFAULT|CARDHLDR=1(default定义为1)
 AmEx1<-subset(AmEx,CARDHLDR==1,select=-c(1,6,12,17,39:56))
 Y<-as.matrix(AmEx1[,"DEFAULT"])
 Xs<-as.matrix(AmEx1[,-1])
+```
 
-# for qualitative choice model, package lars can not used
-# for LAR, LASSO, and CV-based selection
+for qualitative choice model, package lars can not used,it designed for qualitative regression                  
+for LAR, LASSO, and CV-based selection(we can use glmnet package)
+```{r}
 library(glmnet)
 # for linear regression, glm with family=gaussion
 # for logit regression, glm with family=binomial
 # Default equation conditional to Cardholder
-# Ridge Regression
+# Ridge Regression,alpha=0 means Ridge Regression
 logit1<-glmnet(Xs,Y,family="binomial",alpha=0)
 logit1
+#L1 Norm L2惩罚函数=\sum _{i=1}^{p} (\beta_i)^{2}
 plot(logit1)
+#所有参数同时坍缩到0,无法用于model selection
 plot(logit1,xvar="lambda")
-coef(logit1,s=0.1)  # s=lambda selected
+coef(logit1,s=0.1)  # s=lambda selected(这里随便选的)
 
-# LASSO for variables selection
+# LASSO for variables selection,alpha=1 means LASSO
 logit2<-glmnet(Xs,Y,family="binomial",alpha=1)
 logit2
+#L1 Norm L1惩罚函数=\sum _{i=1}^{p} |\beta_i|
+#参数有先后收缩到0
 plot(logit2)
+#可以看到变量参数坍缩到0的先后顺序
 plot(logit2,xvar="lambda")
 
 # cross validation to pick lambda: 10-fold CV
+#数据较大,可以分10块(随机分块),重复cv好多次,每次选出一个最小lambda,再从最小lambda中选出中位数作为最优lambda
+#要set seed才能保证每次都一样
+set.seed(12450)
+#岭回归不能选择变量,只做LASSO
 logit2.cv <- cv.glmnet(Xs,Y,family="binomial",alpha=1)
+#纵轴:错误分类率(miss classification rate)
 plot(logit2.cv)
-# pick best lambda
+# pick best lambda标线的是最优,seed不同结果不同
 best <- logit2.cv$lambda.min
 best   # check log(best)
-
+log(best)
 #coef <- predict(logit2,s=best,type="coef")
 logit2.coef<-coef(logit2,s=best)
 logit2.coef
@@ -53,11 +66,12 @@ logit2.coef[logit2.coef!=0]
 
 # repeated CV method may be used for logit2 model (not run)
 # this can take a long time tor run
+# 重复cv100次,每次选出一个最优lambda,从全部lambda中选出中位数作为selected
 cv_vector<-rep(0,100)
 for(i in 1:100) {
   logit2.cv <- cv.glmnet(Xs, Y, family="binomial", alpha=1)
   cv_vector[i]=logit2.cv$lambda.min
 }
-median(cv_vector)  # find median value of lambda.min
+median(cv_vector)  # find median value of #lambda.min
 coef(logit2,s=median(cv_vector))  # s=lambda selected 
 

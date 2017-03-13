@@ -8,27 +8,51 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-界面数据,72个国家,41个变量
+截面数据,72个国家,41个变量
 方程$g=\beta_0+\beta_yy+\beta_xx+\epsilon$
 g=rates of economic growth
 y=theoretically important variables
 x=optional or secondary variables
-
 Xavier X. Sala-I-Martin: I Just Ran Two Million Regression (AER, 1997)
 Growth Convergence of 72 countries with 41 variables
 Using stepwise regressions
-[FLS-data.csv](http://web.pdx.edu/~crkl/WISE2016/data/FLS-data.csv)
+[FLS-data.csv](http://web.pdx.edu/~crkl/WISE2016/data/FLS-data.csv)     
+```{r}
 #setwd("C:/Course16/WISE2016/R")
-growth <- read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
+#growth <- read.csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
 growth <- read.csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case4\\FLS-data.csv")
 summary(growth)
-#检查多重共线性
+```
+
+# 检查多重共线性
+```{r}
 # check for multicolinearity
-#去掉第一列,作为矩阵,第一列是y(估计是增长率)
+#去掉第一列,作为自变量阵,第一列是y(估计是增长率)
 X <- as.matrix(growth[,-1])
 # Variance, Covariance, Correlation of X
-cov(X)
-cor(X)
+#cov(X)
+m <- cor(X)
+library(corrplot)
+cor.mtest <- function(mat, conf.level = 0.95){
+  mat <- as.matrix(mat)
+    n <- ncol(mat)
+    p.mat <- lowCI.mat <- uppCI.mat <- matrix(NA, n, n)
+    diag(p.mat) <- 0
+    diag(lowCI.mat) <- diag(uppCI.mat) <- 1
+    for(i in 1:(n-1)){
+        for(j in (i+1):n){
+            tmp <- cor.test(mat[,i], mat[,j], conf.level = conf.level)
+            p.mat[i,j] <- p.mat[j,i] <- tmp$p.value
+            lowCI.mat[i,j] <- lowCI.mat[j,i] <- tmp$conf.int[1]
+            uppCI.mat[i,j] <- uppCI.mat[j,i] <- tmp$conf.int[2]
+        }
+    }
+    return(list(p.mat, lowCI.mat, uppCI.mat))
+}
+res1 <- cor.mtest(X,0.95)
+res2 <- cor.mtest(X,0.99)
+corrplot(m, order="hclust",addrect=2,p.mat = res1[[1]], sig.level=0.05)
+corrplot.mixed(m, lower="ellipse", upper="circle")
 # Condition Number
 Xm <- as.matrix(cbind(rep(1,nrow(X)),X))
 # Xm <- cbind(rep(1,nrow(X)),X)
@@ -44,14 +68,20 @@ summary(ols1)
 library(car)
 vif(ols1)    # variance inflation factor
 kappa(ols1)  # condition number
+```
 
+#逐步回归
+```{r}
 # Stepwise Regression begins with null model什么都没有的模型
 ols0 <- lm(y ~ 1, data=growth)    # null model
 #逐步回归
+#从0模型开始,最多全模型
 model.f <- step(ols0,scope=list(lower=ols0,upper=ols1),direction="forward")
 summary(model.f)
+#从全模型开始,逐个剔除
 model.b <- step(ols1, direction="backward")
 summary(model.b)
-model <- step(ols1)  # k=log(n) for BIC criteria
+#混合型:每次可以减去现有变量或者加回全模型中有但是当前模型中没有的变量,选择AIC最小的模型
+model <- step(ols1,direction="both")  # k=log(n) for BIC criteria
 summary(model)
-
+```

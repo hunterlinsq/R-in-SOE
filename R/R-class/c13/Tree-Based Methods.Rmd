@@ -1,0 +1,290 @@
+---
+title: "Tree-Based Methods"
+author: "Elara"
+date: "2016年5月25日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Cross-Validation              
+## The Validation Set Approach          
+数据分成2组,一组做training set,另一组做validation set or hold-out set.用training set拟合模型,用模型预测validation set的数据,计算validation set中的真实数据与预测值的MSE.   
+
+![](C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\1.PNG)
+
+左图:只进行一次分组(随机),平方项的加入显著减低的MSE,三次方反而提高了MSE,效果不好            
+右图:每条线代表一次分组(随机),不同分组结果会导致结果的显著不同,并且由于分组要减半拟合模型所用的数据,也会导致模型拟合效果不好
+
+## K-Fold Cross-Validation      
+1. 把原始数据随机分成k部分,取出一部分作为validation set,剩下的k-1个部分作为training set,并求得其MSE         
+2. 取出第二部分作为validation set,剩下的作为training set,并求得其MSE         
+3. 重复k次,计算出k个MSE,取平均得到CV值              
+
+## example-只分一次
+```{r}
+library(ISLR)
+attach(Auto)
+#E1
+set.seed(2)
+#随机取出training set
+train=sample(392,196)
+lm.fit=lm(mpg~horsepower,subset=train)
+# 1阶模型MSE
+mean((mpg-predict(lm.fit,Auto))[-train]^2)
+# poly表示多项式,后面写入变量名和最高阶数
+lm.fit2=lm(mpg~poly(horsepower,2,raw=T),data=Auto,subset=train)
+# 2阶模型MSE
+mean((mpg-predict(lm.fit2,Auto))[-train]^2)
+# 3阶模型
+lm.fit3=lm(mpg~poly(horsepower,3,raw=T),data=Auto,subset=train)
+# 3阶模型MSE
+mean((mpg-predict(lm.fit3,Auto))[-train]^2)
+# 2阶结果最小
+#E2(只改变seed为1)
+set.seed(1)
+train=sample(392,196)
+lm.fit=lm(mpg~horsepower,subset=train)
+mean((mpg-predict(lm.fit,Auto))[-train]^2)
+lm.fit2=lm(mpg~poly(horsepower,2,raw=T),data=Auto,subset=train)
+mean((mpg-predict(lm.fit2,Auto))[-train]^2)
+lm.fit3=lm(mpg~poly(horsepower,3,raw=T),data=Auto,subset=train)
+mean((mpg-predict(lm.fit3,Auto))[-train]^2)
+# 3阶结果最小
+detach(Auto)
+```
+
+##example-k-flod
+```{r}
+library(boot)
+set.seed(17)
+cv.error.10=rep(0,10)
+for (i in 1:10){
+        #加入i次方多项式进行拟合
+glm.fit=glm(mpg~poly(horsepower,i),data=Auto)
+#计算加入i次方的MSE均值,分10个flod(k=10)
+cv.error.10[i]=cv.glm(Auto,glm.fit,K=10)$delta[1]
+}
+cv.error.10
+# 取2次方,后面阶数太高不划算
+```
+
+#  The Basics of Decision Trees         
+把预测空间(prediction space)用一些简单范围表示          
+## 回归树 regression trees              
+![](C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\2.PNG)     
+
+总均值536,年份小于4.5的均值226,大于4.5的分两类,hits小与118的均值465,大于等于118的949   
+Years is the most important
+factor in determining Salary, and players with less experience earn lower salaries than more experienced
+players. Given that a player is less experienced, the number of hits that he made in the previous year
+seems to play little role in his salary. But among players who have been in the major leagues for
+five or more years, the number of hits made in the previous year does affect salary, and players who
+made more hits last year tend to have higher salaries. The regression tree shown in Figure is likely an
+over-simplification of the true relationship between Hits, Years, and Salary. However, it has advantages
+over other types of regression models: it is easier to interpret, and has a nice graphical representation.
+
+### 回归树求法  
+1. 将需要分类的预测空间分成J个(R1,R2,...RJ).如不同人的工资放到years和hits平面空间中,把这个平面分成3块          
+2. 对每一个落入Rj中的样本,用Rj的均值作为其预测值                
+3. 使得$RSS= \sum _{j=1}^{J} \sum _{i\in Rj} (y_i - \hat {y}_{Rj})^2$最小,其中$\hat {y}_{Rj}$是Rj中样本指标的均值.然而考虑所有可能的划分的话infeasible              
+4. 对于这种递归二元分割(recursive binary splitting),采用top-down,greedy算法.从树的顶端(只有一个类,所有样本都在一个区域内)开始考虑,然后连续地对区域分割,每次分割都分成2部分.每一步都只考虑该步最优,而不进行全局考虑.最优的标准是:对每一个自变量X,和他们各自的可能取值,找出一个自变量以及一个取值(cutpoint),使得根据这个变量的这个值划分开的2个区域能计算出最小的RSS.即对
+$$R1(j,s)= \{ X|X_{j}<s \} \\
+R2(j,s)=\{X|X_{j} \ge s\}
+$$               
+找出j和s最小化          
+$$\sum _{i:x_{i} \in R1(j,s)} (y_i-\hat {y}_{R1})^2 +\sum _{i:x_{i} \in R2(j,s)} (y_i-\hat {y}_{R2})^2$$               
+重复每一个新分出来的区域进行分割,直到达到一个停止标准.
+
+![](C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\2.PNG)     
+
+左上角的图无法通过recursive binary splitting得到.剩下3图是同一棵树的结果               
+### 剪枝(tree pruning)          
+无节制地生长回归树会导致过度拟合(overfit).因为树变得过于庞大复杂.小的树可能产生较低的方差和更好的解释性,虽然可能会有一些bias作为代价.可能的剪枝标准可以是RSS的减少超过一定的大小.但是这可能会导致错过之后的产生很大的RSS下降的树枝.   
+更好的剪枝方法是:先生长成完整的树$T_0$,再从中寻找CV最小的树--然而子集可能太多,难以计算.               
+
+### cost complexity pruning(weakest link pruning)       
+
+对一棵树T而言           
+T:terminal nodes of the tree T,$R_m$第m个terminal node,$\hat{y} _{R_m}$是$R_m$对应区域中的样本均值              
+在原有的RSS中加入一个对于树的复杂度的惩罚项,对每一个惩罚参数$\alpha$,找出T,使整个目标函数最小化             
+$$
+\sum _{m=1}^{|T|} \sum _{i:x_i \in R_m } (y_i-\hat {y}_{R_m})^2 + \alpha |T|
+$$
+                
+### 选择alpha流程        
+1. Use recursive binary splitting to grow a large tree on the training data, stopping only when each terminal node has fewer than some minimum number of observations.           
+2. Apply cost complexity pruning to the large tree in order to obtain a sequence of best subtrees,as a function of $\alpha$.                    
+3. Use K-fold cross-validation to choose α. For each k = 1, ..., K:             
+(a) Repeat Steps 1 and 2 on the $\frac{K−1}{K}$ th fraction of the training data, excluding the kth fold.                   
+(b) Evaluate the mean squared prediction error on the data in the left-out k-th fold, as a function of $\alpha$.                        
+(c) Average the results, and pick α to minimize the average error.      
+4. Return the subtree from Step 2 that corresponds to the chosen value of $\alpha$.               
+
+
+
+```{r}
+#Create the data
+library(ISLR)
+library(tree)
+library(rpart)
+library(rpart.plot)
+data("Hitters")
+set.seed(12345)
+#Split train and test data
+#分离训练集和测试集train.data.present表示训练集比例
+apart.data<-function(data,train.data.present=.5){
+train.index<-sample(c(1:nrow(data)),round(nrow(data)*train.data.present))#抽样
+data.train<-data[train.index,]
+data.test<-data[-c(train.index),]
+result<-list(train=data.train,test=data.test)
+result
+}
+good<-complete.cases(Hitters)#返回非NA位置
+Hitter<-Hitters[good,] #remove NA
+data.all<-apart.data(Hitter)#分离训练集和测试集
+data.train<-data.all$train#取出训练集
+data.test<-data.all$test#取出测试集
+nrow(data.train)
+nrow(data.test)
+class(data.train)
+
+#Tree based analysis
+#Complete grown tree
+Fit<-rpart(Salary~.,data=Hitter)
+rpart.plot(Fit,type=4)
+#
+Ctl<-rpart.control(
+        minsplit=20,#最小terminal的sample是20
+        xval=6,#k=6，分6折
+        cp=0#复杂度参数alpha初始值
+        )
+set.seed(1)
+Fit1<-rpart(Salary~.,data=Hitter,control=Ctl)
+rpart.plot(Fit1,type=4)
+printcp(Fit1)
+#xerror：交叉验证预测误差，cp是alpha
+#小于某个标识的cp的alpha的值因为达不到剪枝要求的值,所以不能剪枝,分裂结果和向下对应的cp产生的分裂结果一样
+plotcp(Fit1)
+#下横轴cp(alpha),纵轴是交叉验证误差,上横轴是树的大小(terminal个数),
+#cp0.02的时候看起来误差最小,应该有5个terminal,分裂4次
+Fit2<-prune(Fit1,cp=0.02)#剪枝,采用cp(alpha)为0.02
+rpart.plot(Fit2,type=4)#剪枝后结果,分裂4次,5个terminal,8个枝干,3个中间节点,总共9个节点
+```
+
+不纯度越低,信息熵越小
+每个节点都要求纯度
+父节点和子节点之间的纯度差叫信息增量
+增量越大,效果越好分裂越有意义
+选择分类能产生最大信息增益的变量和其分类标准值做分类
+
+```{r}
+#load and modify data
+BuyOrNot<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\Data\\BuyOrNot.txt",header=TRUE)
+#转化为因子变量
+BuyOrNot$Income<-as.factor(BuyOrNot$Income)
+BuyOrNot$Gender<-as.factor(BuyOrNot$Gender)
+nrow(BuyOrNot)
+#creat tree
+set.seed(12345)
+#最小terminal的sample个数是20,xval=10(k=10,分10折),cp初始0,除去根节点后最多30层
+Ctl<-rpart.control(minsplit=20,xval=10,maxdepth=30,cp=0)
+#Purchase~.对purchase指标分类,class表示用分类树方法,gini表示用gini系数作为增益指标,用信息熵写information
+TreeFit<-rpart(Purchase~.,data=BuyOrNot,method="class",parms=list(split="gini"),control=Ctl)
+#type:树图的style,branch:枝干拐弯角度,0是0°,1是90°
+rpart.plot(TreeFit,type=4,branch=0,extra=2)
+#customizing tree
+Ctl<-rpart.control(minsplit=2,maxcompete=4,xval=10,maxdepth=10,cp=0)
+set.seed(12345)
+TreeFit1<-rpart(Purchase~.,data=BuyOrNot,method="class",parms=list(split="information"),control=Ctl)
+rpart.plot(TreeFit1,type=4,branch=0,extra=2)
+#prune tree
+printcp(TreeFit1)
+plotcp(TreeFit1)
+TreeFit2<-prune(TreeFit1,cp=0.003)
+rpart.plot(TreeFit2,type=4,branch=0,extra=2)
+```
+
+增强树法的预测精度
+1.bagging装袋法
+用自举法从n个样本中每次有放回抽取一个,抽取n次,任意一个样本一次都不会被抽中的概率:
+```{r}
+pr = function(n) return(1 - (1 - 1/n)^n)
+x = 1:1e+03
+tail(pr(x))
+```
+收敛于0.63,意味着抽出来的袋子中的样本只相当于原来n个样本中的2/3左右,剩下的1/3左右是在抽出的样本之外
+所以可以用这个方法,把没有被抽中的样本作为测试集
+每一次抽满n个样本就可以生成一棵树
+重复抽n次,就生成n棵树,然后用所有树的分类结果中出现次数最高的作为最终分类结果.
+
+```{r}
+MailShot<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\Data\\MailShot.txt",header=TRUE)
+MailShot<-MailShot[,-1]
+Ctl<-rpart.control(minsplit=20,maxcompete=4,maxdepth=30,cp=0.01,xval=10)
+set.seed(12345)
+TreeFit<-rpart(MAILSHOT~.,data=MailShot,method="class",parms=list(split="gini"))
+rpart.plot(TreeFit,type=4,branch=0,extra=1)
+CFit1<-predict(TreeFit,MailShot,type="class")
+ConfM1<-table(MailShot$MAILSHOT,CFit1)
+ConfM1#对角线是正确的分类个数
+(E1<-(sum(ConfM1)-sum(diag(ConfM1)))/sum(ConfM1))
+library("ipred")
+set.seed(12345)
+(BagM1<-bagging(MAILSHOT~.,data=MailShot,coob=TRUE,control=Ctl))
+CFit2<-predict(BagM1,MailShot,type="class")
+ConfM2<-table(MailShot$MAILSHOT,CFit2)
+(E2<-(sum(ConfM2)-sum(diag(ConfM2)))/sum(ConfM2))
+detach("package:ipred")
+library("adabag")
+MailShot<-read.table(file="MailShot.txt",header=TRUE)
+MailShot<-MailShot[,-1]
+Ctl<-rpart.control(minsplit=20,maxcompete=4,maxdepth=30,cp=0.01,xval=10)
+set.seed(12345)
+BagM2<-bagging(MAILSHOT~.,data=MailShot,control=Ctl,mfinal = 25)
+BagM2$importance
+CFit3<-predict.bagging(BagM2,MailShot)
+CFit3$confusion
+CFit3$error
+```
+
+不太方便
+改进:
+2.boosting
+bagging中抽样容易重复抽取
+第一次抽取权重都是1,生成一个树,把预测正确的样本权重下降,错误的权重上升,再生成新的树,每次都逐渐纠正错误,提升预测
+
+```{r}
+MailShot<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\Data\\MailShot.txt",header=TRUE)
+MailShot<-MailShot[,-1]
+Ctl<-rpart.control(minsplit=20,maxcompete=4,maxdepth=30,cp=0.01,xval=10)
+set.seed(12345)
+BoostM<-boosting(MAILSHOT~.,data=MailShot,boos=TRUE,mfinal=25,coeflearn="Breiman",control=Ctl)
+BoostM$importance
+ConfM4<-table(MailShot$MAILSHOT,BoostM$class)
+(E4<-(sum(ConfM4)-sum(diag(ConfM4)))/sum(ConfM4))
+```
+
+3.随机森林
+用自举法抽样
+在建立决策树的时候每个分列点都做一个限制
+原本用信息增益的时候,每棵树前几个比较重要的变量都差不多
+现在从p个变量中,每次生成树的时候都只从其中选出m个变量来作为分类变量,m一般是$\sqrt{m}$,从p个变量中随机选m个
+好处:相当于每科决策树精通某个领域
+最后用生成的所有的树的结果进行投票作为最终结果
+```{r}
+library("randomForest")
+MailShot<-read.table(file="C:\\Users\\44180\\Documents\\R-in-SOE\\R\\R-class\\c13\\Data\\MailShot.txt",header=TRUE)
+MailShot<-MailShot[,-1]
+set.seed(12345)
+(rFM<-randomForest(MAILSHOT~.,data=MailShot,importance=TRUE))
+Fit<-predict(rFM,MailShot)
+ConfM5<-table(MailShot$MAILSHOT,Fit)
+(E5<-(sum(ConfM5)-sum(diag(ConfM5)))/sum(ConfM5))
+barplot(rFM$importance[,3],main="Importance of variable (Bar Plot)")
+box()
+importance(rFM,type=1)
+varImpPlot(x=rFM, sort=TRUE, n.var=nrow(rFM$importance),main="Importance of variable (scatter Plot)")
+```

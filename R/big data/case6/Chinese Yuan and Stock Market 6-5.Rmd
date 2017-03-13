@@ -1,0 +1,95 @@
+---
+title: "Chinese Yuan and Stock Market 6-5"
+author: "Wang ZeXian"
+date: "2016年5月15日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# China Stock Market Index: Shanghai Common Stock
+State Space Time Series Analysis using dlm package
+
+# Using Quandl API to search and retrieve data series
+```{r}
+# install.packages("Quandl")
+library(Quandl)
+# Quandl.auth("4UqGASL7CigqHzpfdnNw")
+# SP500<-Quandl(code="YAHOO/INDEX_GSPC",type="xts") 
+# xts or zoo type should be used for daily high frequency data
+# frequency conversion for xts type: apply.xxx
+# xxx=yearly, quartertly, monthly, weekly
+#SSEC<-Quandl(code="YAHOO/INDEX_SSEC",type="xts") 
+# daily price index: irregularly-spaced time series
+load("C:\\Users\\44180\\Documents\\R-in-SOE\\R\\big data\\case6\\SP500 and SSEC.RData")
+data<-SSEC[,"Adjusted Close"]
+summary(data)
+plot(data)
+```             
+
+# select a variable for analysis and DLM
+DLM page 4 in [TSAR-2.pdf](C:\Users\44180\Documents\R-in-SOE\R\big data\case6\TSAR-2.pdf)
+```{r}
+Y<-log(data)
+
+level0<-mean(Y) #mean of Y
+slope0<-mean(diff(Y),na.rm=T) #mean of diff Y
+
+library(dlm)
+#输入params,参数
+# local level model
+dlm1<-function(params) {
+  dlmModPoly(order=1,dV=exp(params[1]),dW=exp(params[2]))
+        # exp:make sure it is positive
+        # it is a linear model
+        # order=1:level,dv--v_t,dw--w_t
+}
+# constant level: dW=0, restricted
+# w_t的差分为0,即为常数
+dlm11<-function(params) {
+  dlmModPoly(order=1,dV=exp(params[1]),dW=0)
+}
+
+# local trend model
+#trend出现在state equation中,,observation equation中仍然只有v_t,state equation出现2个w_t
+dlm2<-function(params) {
+  dlmModPoly(order=2,dV=exp(params[1]),dW=exp(params[2:3]),m0=c(level0,slope0))
+        # dv 1 equation,dw 2 equations,m0 is given
+        #m0是初始状态分布(initail state distribution)
+}
+# local trend with constant level: dW[2]=0 restricted
+#w的第二个参数差分为0,trend项不变
+dlm2<-function(params) {
+  dlmModPoly(order=2,dV=exp(params[1]),dW=c(0,0),m0=c(level0,slope0))
+        #第一项差分也为0?
+}
+
+# local trend ARMA model
+dlm3<-function(params) {
+  dlmModPoly(order=2,dV=exp(params[1]),dW=exp(params[2:3]),m0=c(level0,slope0)) +  
+    dlmModARMA(ar=params[5],ma=params[6],sigma2=exp(params[4]))
+}
+```
+
+# ML Estimation 
+```{r}
+dlm.fit<-dlmMLE(Y,c(1,1),dlm1)#(data,initial,model)
+#dlm.fit<-dlmMLE(Y,c(1,1,1),dlm2)
+#dlm.fit<-dlmMLE(Y,c(1,1,1,1,0,0),dlm3)
+dlm.fit# need to cheak converage =0?if not the solution is not realiable
+dlm.model<-dlm1(dlm.fit$par)
+#dlm.model<-dlm2(dlm.fit$par)
+#dlm.model<-dlm3(dlm.fit$par)
+dlm.model
+dlm.model$V  # V(dlm1.model)
+dlm.model$W  # W(dlm1.model)
+dlm.filtered<-dlmFilter(Y,dlm.model)# 2 step first estimation,second, update
+dlm.smoothed<-dlmSmooth(dlm.filtered)# 
+dlm.resid<-residuals(dlm.filtered)$res
+dlm.fm<-dropFirst(dlm.filtered$m)  # filtered mu
+dlm.sm<-dropFirst(dlm.smoothed$s)  # smoothed mu
+ts.plot(dlm.sm)
+#ts.plot(dlm.sm[,1])
+#ts.plot(dlm.sm[,2])

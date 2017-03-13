@@ -8,43 +8,48 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-有45个store 每个store有99个部门(可能没那么多).截面方面
-时间从2011-2013(2014),时间序列维度
-# Walmart Sales
-# Data Visualization
-#
+#Walmart Sales          
+Data Visualization              
+截面方面:有45个store,每个store有99个部门(可能没那么多).         
+时间序列维度:时间从2011-2013(2014)              
+```{r}
 library(readr)
 # Store Dept Date Weekly_Sales IsHoliday: 2010-02-05 ~ 2012-10-26
-data1<-read_csv("C:/Course16/WISE2016/data/Walmart_train.csv")
+#data1<-read_csv("C:/Course16/WISE2016/data/Walmart_train.csv")
 # Store Type Size
-data2<-read_csv("C:/Course16/WISE2016/data/Walmart_stores.csv")
+#data2<-read_csv("C:/Course16/WISE2016/data/Walmart_stores.csv")
 # Store Date Temperature Fuel_Price Markdown1-5 CPI Unemplyment IsHoliday
-data3<-read_csv("C:/Course16/WISE2016/data/Walmart_features.csv")
+#data3<-read_csv("C:/Course16/WISE2016/data/Walmart_features.csv")
 # Store Dept Date IsHoliday: 2012-11-02 ~ 2013-07-26
-data4<-read_csv("C:/Course16/WISE2016/data/Walmart_test.csv")
+#data4<-read_csv("C:/Course16/WISE2016/data/Walmart_test.csv")
 # Store Dept Date Weekly_Sales IsHoliday: 2010-02-05 ~ 2012-10-26
-data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
+#data1<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_train.csv")
 data1<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_train.csv")
 # Store Type Size
-data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
+#data2<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_stores.csv")
 data2<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_stores.csv")
 # Store Date Temperature Fuel_Price Markdown1-5 CPI Unemplyment IsHoliday
-data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
+#data3<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_features.csv")
 data3<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_features.csv")
 # Store Dept Date IsHoliday: 2012-11-02 ~ 2013-07-26
-data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
+#data4<-read_csv("C:\\Users\\44180\\Documents\\Surface-workandstudy\\soe\\bigdata\\Walmart_test.csv")
 data4<-read_csv("D:\\PC-workandstudy\\soe\\bigdata\\data of case3\\Walmart_test.csv")
-
+head(data1)#train
+head(data2)#store
+head(data3)#features
+head(data4)#test
 # training dataset: 2010-02-05 ~ 2012-10-26
 train<-merge(data1,merge(data2,data3))
 # testing dataset: 2012-11-02 ~ 2013-07-26
 test<-merge(data4,merge(data2,data3))
 
-rm(data1,data2,data3,data4)
+#rm(data1,data2,data3,data4)
 summary(train)
 dim(train)
+```
 
 # Analysis for train data only
+```{r}
 # some variables include missing values
 train$Date<-as.Date(train$Date)
 train$Store<-as.factor(train$Store)
@@ -53,7 +58,7 @@ train$Type<-as.factor(train$Type)
 
 with(train,table(Dept,Store))  # 45 stores with 99 (index) departments
 with(train,table(Store,Type))  # 3 types (Store and Type are exclusive)
-with(train,table(Dept,Type))
+with(train,table(Dept,Type))   
 
 library(ggplot2)
 # 99 Depts within 45 Stores which are in 3 types
@@ -90,3 +95,4 @@ g2+facet_grid(Type ~ .)+g0
 g3<-ggplot(data=Sales_Dept,aes(x=Date,y=x)) + geom_line(aes(col=Dept)) 
 g3+g0
 g3+facet_grid(Type ~ .)+g0
+```

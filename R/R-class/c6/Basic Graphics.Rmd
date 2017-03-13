@@ -1,0 +1,411 @@
+---
+title: "Basic Graphics"
+author: "Elara"
+date: "2016年6月3日"
+output: html_document
+---
+
+# Base Plotting System    
+can't go back once plot has started     
+difficult to translate to others        
+just a series of R commands     
+```{r}
+library(datasets)
+data(cars)
+with(cars,plot(speed,dist))#with(data sets,command)
+attach(mtcars)
+plot(wt, mpg) ## Make plot appear on screen device
+abline(lm(mpg ~ wt))
+title("Regression of MPG on Weight") ## Annotate with a title
+detach(mtcars)
+```
+
+#Graphics Device
+window,PDF,PNG,JPEG,SVG         
+win.metafile(),png(),jpeg(),bmp(),tiff(),xfig(),postscript()     
+```{r}
+#save to a pdf file
+#pdf("mygraph.pdf")
+#attach(mtcars)
+#plot(wt, mpg)
+#abline(lm(mpg ~ wt))
+#title("Regression of MPG on Weight")
+#detach(mtcars)
+#dev.off()
+```
+
+On a Windows platform, select File > Save As from
+the graphics window, and choose the format and location desired in the resulting dialog. Creating a new graph
+        
+Creating a new graph by issuing a high-level plotting command such as plot(), hist() (for histograms), or boxplot() will typically overwrite a previous graph.           
+Copying a plot to another device can be useful because some plots require a lot of code and it can be a pain
+to type all that in again for a different device.              
+- dev.copy: copy a plot from one device to another
+- dev.copy2pdf: specifically copy a plot to a PDF file
+```{r}
+#attach(mtcars)
+#plot(wt, mpg) ## Make plot appear on screen device
+#abline(lm(mpg ~ wt))
+#title("Regression of MPG on Weight") ## Annotate with a title
+#dev.copy(png, file = "testpng.png") ## Copy my plot to a PNG file
+#dev.off() ## Don't forget to close the PNG device!
+#detach(mtcars)
+```
+
+# Plot function         
+
+```{r}
+dose <- c(20, 30, 40, 45, 60)
+drugA <- c(16, 20, 27, 40, 60)
+drugB <- c(15, 18, 25, 31, 40)
+plot(dose, drugA, type = "b")#plot(x,y),type b means both lines and points are plotted
+```
+ 
+# Graphical parameters          
+par() global settings
+```{r}
+par()# current graphical settings
+par(no.readonly = TRUE)# current graphical settings that can be modified
+opar <- par(no.readonly=TRUE)#keep the original settings into opar
+par(lty=2,pch=17)# changes the default line type to dashed (lty=2) and the default symbol for plotting points to a solid triangle (pch=17).
+plot(dose,drugA,type="b")
+par(opar)# restore  to original settings
+plot(dose,drugA,type="b")
+example(points)#example of points function
+
+#Or we can providing the parameters directly to a high-level plotting function(not all high-level functions support that)
+plot(dose, drugA, type="b", lty=2, pch=17)
+
+```
+
+# Symbols and lines             
+- pch:symbol of points          
+- cex:symbol size,default=1,1.5 is 150%         
+- lty:line type         
+- lwd:line width.default=1              
+```{r}
+plot(dose, drugA, type="b", lty=3, lwd=3, pch=15, cex=2)
+#would produce a plot with a dotted line that was three times wider than the default width, connecting points displayed as filled squares that are twice as large as the default symbol size.
+```
+
+# Color         
+You can specify colors in R by index, name, hexadecimal, RGB,
+or HSV. For example, col=1, col="white", col="#FFFFFF", col=rgb(1,1,1), and col=hsv(0,0,1) are equivalent
+ways of specifying the color white.             
+The function rgb()creates colors based on red-green-blue values, whereas
+hsv() creates colors based on hue-saturation values          
+The function colors() returns all available color names           
+Earl F. Glynn has created an excellent online chart of R colors, available at [Chart](http://research.stowers-institute. org/efg/R/Color/Chart)       
+ R also has a number of functions
+that can be used to create vectors of contiguous colors. These include *rainbow(), heat.colors(), terrain. colors(),topo.colors(), and cm.colors()*.For example, *rainbow(10) produces 10 contiguous “rainbow" colors.*         
+Gray levels are generated with the *gray()* function. In this case, you specify gray levels as a vector of numbers between 0 and 1. gray(0:10/10) would produce 10 gray levels.         
+a:b/c，生成a到b/c之间的b个数
+```{r}
+#a:b/c，生成a到b/c之间的b个数
+1:5/10
+2:10/10
+#example
+n <- 10
+mycolors <- rainbow(n)
+pie(rep(1, n), labels=mycolors, col=mycolors)
+mygrays <- gray(0:n/n)
+pie(rep(1, n), labels=mygrays, col=mygrays)
+```
+
+col:plotting color      
+col.axis:color for axis *text*            
+col.lab:color for axis labels           
+col.main:color for titles               
+col.sub:color for subtitles             
+fg: plot's foreground color             
+bg: plot's background color             
+
+# Text characteristics
+cex：放大倍数(各种元素)           
+cex.axis:轴放大倍数         
+cex.lab:轴标签放大倍数          
+cex.main:title放大倍数          
+cex.sub:副标题放大倍数          
+font字体属性：1=plain, 2=bold, 3=italic, 4=bold italic, 5=symbol                
+font.axis:轴字体                
+font.lab：轴标签字体            
+font.main：标题字体             
+font.sub：副标题字体            
+ps：字号font point size                
+字体大小=ps*cex 
+```{r}
+#标签字体为italic斜体，标签字体倍数1.5，主标题字体bold加粗，放大1倍
+#par(font.lab=3, cex.lab=1.5, font.main=4, cex.main=2)
+#names(pdfFonts())
+#pdf(file="myplot.pdf", family="fontname")
+#pie(rep(1, n), labels=mycolors, col=mycolors)
+#dev.off()
+```
+
+#Graph and margin dimensions    
+pin:图的宽和高（英寸），一个向量          
+mai:图边距,向量c（底，左，顶,右）(英寸) 顺时针             
+mar:图边距,向量c（底，左，顶,右）(lines)默认c(5,4,4,2)+0.1           
+```{r}
+#设定图的大小4x3,边距底1,左0.5,顶1,右0.2
+par(pin=c(4,3), mai=c(1,.5, 1, .2))
+```
+
+#example
+```{r}
+dose <- c(20, 30, 40, 45, 60)
+drugA <- c(16, 20, 27, 40, 60)
+drugB <- c(15, 18, 25, 31, 40)
+opar <- par(no.readonly=TRUE)#保存当前
+par(pin=c(2, 3))#大小2x3
+par(lwd=2, cex=1.5)#线宽2倍默认,symbol1.5倍
+par(cex.axis=.75, font.axis=3)#轴0.75倍,轴字体3属性(斜体)
+plot(dose, drugA, type="b", pch=19, lty=2, col="red")
+plot(dose, drugB, type="b", pch=23, lty=6, col="blue", bg="green")#bg是点的背景色
+par(opar)
+```
+
+# Add text,customized axes,and legends  
+
+```{r}
+plot(dose, drugA, type="b",
+col="red", lty=2, pch=2, lwd=2,
+main="Clinical Trials for Drug A",
+sub="This is hypothetical data",
+xlab="Dosage", ylab="Drug Response",
+xlim=c(0, 60), ylim=c(0, 70))
+#b:线点都有，col颜色，lty线型，pch点型，lwd线宽，xlabx轴标签，ylaby轴标签，xlimx轴限制，ylimy轴限制
+```
+
+# Titles                
+title(main="main title", sub="sub-title",       
+xlab="x-axis label", ylab="y-axis label")       
+前面的单独设定，这里放到title（）里面设定，不影响其他         
+Graphical parameters (such as text size, font, rotation, and color) can also be specified in the title() function.       
+
+```{r}
+plot(dose, drugA,
+title(main="My Title", col.main="red",
+sub="My Sub-title", col.sub="blue",
+xlab="My X label", ylab="My Y label",
+col.lab="green", cex.lab=0.75), ann=FALSE)
+```
+
+#Axes   
+axis(side, at=, labels=, pos=, lty=, col=, las=, tck=)           
+axes=FALSE:去掉所有axes，除非加入frame.plot=TRUE否则连axis frame lines都去掉                
+xaxt=“n"，yaxt="n“消除x和y-axis（刻度和标签）         
+side：这个轴中图上的位置（1底，2左，3顶，4右）          
+at：数字向量：tick marks（刻度线）要画的位置              
+labels：字符向量：tickmarks（刻度线）要放的内容（没写的话at里面的值被放进去）           
+pos：axis要画的位置坐标（在其他坐标轴的位置）           
+lty：线型       
+col：线和tickmark（刻度线）颜色           
+las：=0的时候label对轴平行，=2垂直              
+tck：刻度线长度占图的比(负数出界，正数中内部，0没刻度线，1网格线)，默认-0.01         
+
+#example        
+```{r}
+x <- c(1:10)
+y <- x
+z <- 10/x
+opar <- par(no.readonly = TRUE)
+par(mar = c(5, 4, 4, 8) + 0.1)#右边距多了6
+plot(x, y, type = "b", pch = 21, col = "red", yaxt = "n",#省略y轴刻度和标签
+lty = 3, ann = FALSE)
+lines(x, z, type = "b", pch = 22, col = "blue", lty = 2)#加一条x-z线
+axis(2, at = x, labels = x, col.axis = "red", las = 2)#加入左轴（刻度线），内容和x一样，红色，las2垂直x轴
+axis(4, at = z, labels = round(z, digits = 2), col.axis = "blue",
+las = 2, cex.axis = 0.7, tck = -0.01)
+#加入右轴，标签内容是z各个点保留2位小数，蓝色，垂直x轴，0.7缩放，放在图边界外
+mtext("y=1/x", side = 4, line = 3, cex.lab = 1, las = 2, col = "blue")#加入右轴说明
+title("An Example of Creative Axes", xlab = "X values", ylab = "Y=X")
+par(opar)
+```
+
+# Minor tick marks      
+```{r}
+#install.package(Hmisc)
+#minor.tick(nx=2, ny=3, tick.ratio=0.5)
+#在默认刻度线中加入小刻度线（50%）
+```
+
+# Reference lines
+```{r}
+#加入直线，v竖线，分别是x=1，10，2
+#abline(v=seq(1, 10, 2), lty=2, col="blue")
+```
+
+#legend 
+图例            
+legend(location, title, legend)         
+
+#example        
+```{r}
+dose <- c(20, 30, 40, 45, 60)
+drugA <- c(16, 20, 27, 40, 60)
+drugB <- c(15, 18, 25, 31, 40)
+opar <- par(no.readonly = TRUE)
+par(lwd = 2, cex = 1.5, font.lab = 2)#线宽2，内容缩放150%，字体加粗
+plot(dose, drugA, type = "b", pch = 15, lty = 1, col = "red",
+ylim = c(0, 60), main = "Drug A vs. Drug B",
+xlab = "Drug Dosage", ylab = "Drug Response")
+lines(dose, drugB, type = "b", pch = 17, lty = 2, col = "blue")#加线
+abline(h = c(30), lwd = 1.5, lty = 2, col = "grey")#加直线h表示横线
+library(Hmisc)
+minor.tick(nx = 3, ny = 3, tick.ratio = 0.5)#加入小刻度
+#加入图例
+legend("topleft", inset = 0.05, title = "Drug Type", c("A", "B"),#左上角，缩进0.05，c（要做图例的线的名字）
+lty = c(1, 2), pch = c(15, 17), col = c("red", "blue"))
+par(opar)
+```
+
+# Text annotations      
+text放在图里            
+text(location, "text to place", pos)            
+mtext放在4个边之一上            
+mtext("text to place", side, line=n)            
+```{r}
+attach(mtcars)
+plot(wt, mpg, main = "Milage vs. Car Weight", xlab = "Weight", ylab = "Mileage",
+pch = 18, col = "blue")
+text(wt, mpg, row.names(mtcars), cex = 0.6, pos = 4, col = "red")#wt,mpg <- location,row.name <- "text",pos=4,放在location右边
+detach(mtcars)
+```
+
+```{r}
+opar <- par(no.readonly=TRUE)
+par(cex=1.5)
+plot(1:7,1:7,type="n")#没线和点
+text(3,3,"Example of default text")
+text(4,4,family="mono","Example of mono-spaced text")
+text(5,5,family="serif","Example of serif text")
+par(opar)
+```
+
+# Math annotations      
+```{r}
+plot(1:10, 1:10)
+text(4, 9, expression(hat(beta) == (X^t * X)^{-1} * X^t * y))
+text(4, 8.4, "expression(hat(beta) == (X^t * X)^{-1} * X^t * y)", cex = .8)
+text(4, 7, expression(bar(x) == sum(frac(x[i], n), i==1, n)))
+text(4, 6.4, "expression(bar(x) == sum(frac(x[i], n), i==1, n))", cex = .8)
+```
+
+# Combining graphs      
+With the par() function, you can include the graphical parameter mfrow=c(nrows, ncols) to create a matrix of nrows x ncols plots that are filled in by row
+```{r, message=FALSE, warning=FALSE}
+attach(mtcars)
+opar <- par(no.readonly=TRUE)
+par(mfrow=c(2,2))#2x2分图,mfrow表示每行个数。mfcol表示每列个数
+plot(wt,mpg, main="Scatterplot of wt vs. mpg")
+plot(wt,disp, main="Scatterplot of wt vs disp")
+hist(wt, main="Histogram of wt")
+boxplot(wt, main="Boxplot of wt")
+par(opar)
+detach(mtcars)
+```
+
+layout          
+```{r, message=FALSE, warning=FALSE}
+attach(mtcars)
+layout(matrix(c(1, 1, 2, 3), 2, 2, byrow = TRUE), widths=c(3, 1), heights=c(1, 2))
+#1，2，3表示第一，二，三张图，矩阵表示分成2x2格，width表示分图的横轴分法，分成3：1，height表示分图的时候纵轴分法，分成1：2
+hist(wt)
+hist(mpg)
+hist(disp)
+detach(mtcars)
+```
+
+#Creating a figure arrangement with fine control        
+图片叠加        
+```{r, message=FALSE, warning=FALSE}
+opar <- par(no.readonly = TRUE)
+par(fig = c(0, 0.8, 0, 0.8))#限定在x0-0.8，y0-0.8的范围内作图
+plot(mtcars$wt, mtcars$mpg, xlab = "Miles Per Gallon", ylab = "Car Weight")
+par(fig = c(0, 0.8, 0.5, 1), new = TRUE)#限定在x0-0.8，y0.5-1的范围呢画图
+boxplot(mtcars$wt, horizontal = TRUE, axes = FALSE)
+par(fig = c(0.6, 1, 0, 0.8), new = TRUE)#限定在x0.6-1，y0-0.8
+boxplot(mtcars$mpg, axes = FALSE)
+#axes都是false，箱线图的框框没有
+mtext("Enhanced Scatterplot", side = 3, outer = TRUE, line = -5)
+par(opar)
+```
+
+# Scatter plot
+```{r, message=FALSE, warning=FALSE}
+library(car)
+scatterplot(mpg ~ wt | cyl, data=mtcars, lwd=2,
+main="Scatter Plot of MPG vs. Weight by # Cylinders",
+xlab="Weight of Car (lbs/1000)",
+ylab="Miles Per Gallon",
+legend.plot=TRUE,
+id.method="identify",
+labels=row.names(mtcars),
+boxplots="xy"
+)
+```
+
+# high-density scatter plots    
+```{r}
+set.seed(1234)
+n <- 10000
+c1 <- matrix(rnorm(n, mean=0, sd=.5), ncol=2)
+c2 <- matrix(rnorm(n, mean=3, sd=2), ncol=2)
+mydata <- rbind(c1, c2)
+mydata <- as.data.frame(mydata)
+names(mydata) <- c("x", "y")
+#plot
+with(mydata, plot(x, y, pch=19, main="Scatter Plot with 10,000 Observations"))
+#smoothScatter
+with(mydata, smoothScatter(x, y, main="Scatterplot Colored by Smoothed Densities"))
+
+```
+
+Scatter plot matrices
+```{r, message=FALSE, warning=FALSE}
+#相关图矩阵
+pairs(~mpg+disp+drat+wt, data=mtcars, main="Basic Scatter Plot Matrix")
+#去掉对称部分
+pairs(~mpg+disp+drat+wt, data=mtcars, main="Basic Scatter Plot Matrix",upper.panel=NULL)
+library(car)
+scatterplotMatrix(~ mpg + disp + drat + wt, data=mtcars,
+spread=FALSE, lty.smooth=2, main="Scatter Plot Matrix via car Package")
+scatterplotMatrix(~ mpg + disp + drat + wt | cyl,
+data=mtcars, spread=FALSE, diagonal="histogram", main="Scatter Plot Matrix via car Package")
+```
+
+3D scatter plots
+```{r, message=FALSE, warning=FALSE}
+library(scatterplot3d)
+attach(mtcars)
+scatterplot3d(wt, disp, mpg, main="Basic 3D Scatter Plot")#3d图
+scatterplot3d(wt, disp, mpg, pch=16, highlight.3d=TRUE,
+type="h", main="3D Scatter Plot with Vertical Lines")
+#highlight.3d=TRUE:加入垂直连线，typeh：渐变色
+#把上图保存到s3d
+s3d <-scatterplot3d(wt, disp, mpg, pch=16, highlight.3d=TRUE,
+type="h", main="3D Scatter Plot with Vertical Lines and Regression Plane")
+#fit拟合mpg=wt+disp
+fit <- lm(mpg ~ wt+disp)
+#把s3d的plane3d赋值fit（加入拟合平面）
+s3d$plane3d(fit)
+detach(mtcars)
+```
+
+其他3种         
+```{r}
+#library(rgl)
+#attach(mtcars)
+#plot3d(wt, disp, mpg, col="red", size=5)
+#library(Rcmdr)
+#scatter3d(wt, disp, mpg)
+#detach(mtcars)
+```
+
+
+
+
+
+
+

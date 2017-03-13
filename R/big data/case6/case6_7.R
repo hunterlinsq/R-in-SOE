@@ -1,0 +1,53 @@
+# Exchange Rate CNY/USD
+# State Space Time Series Models Using DLM package
+# Using Quandl API to search and retrieve data series
+# install.packages("Quandl")
+library(Quandl)
+# Quandl.auth("4UqGASL7CigqHzpfdnNw")
+# SP500<-Quandl(code="YAHOO/INDEX_GSPC",type="xts") 
+# xts or zoo type should be used for daily high frequency data
+# frequency conversion for xts type: apply.xxx
+# xxx=yearly, quartertly, monthly, weekly
+CNY<-Quandl(code="BUNDESBANK/BBEX3_D_CNY_USD_CA_AC_000",type="xts") 
+# daily price index: irregularly-spaced time series
+# CNY<-subset(CNY,time(CNY)>c("2005-12-31"))
+summary(CNY)
+plot(CNY)
+
+# dummy variable for structural change
+d2006<-xts(ifelse(time(CNY)>c("2005-12-31"),1,0),order.by=time(CNY))
+
+# select variable for analysis
+Y<-CNY
+
+ols3<-lm(Y~d2006)
+summary(ols3)
+
+library(dlm)
+
+# local level with intervention variable
+ssm3<-function(params) {
+  dlmModReg(d2006,dV=exp(params[1]),dW=exp(params[2:3]))
+}
+# constant level: dW=0 restricted
+ssm3<-function(params) {
+  dlmModReg(d2006,dV=exp(params[1]),dW=c(exp(params[2]),0))
+}
+
+# ML Estimation 
+ssm.fit<-dlmMLE(Y,c(1,1,1),ssm3)
+ssm.fit
+ssm.model<-ssm3(ssm.fit$par)
+ssm.model
+ssm.model$V  # V(ssm1.model)
+ssm.model$W  # W(ssm1.model)
+ssm.filtered<-dlmFilter(Y,ssm.model)
+ssm.smoothed<-dlmSmooth(ssm.filtered)
+ssm.resid<-residuals(ssm.filtered)$res
+ssm.sm<-dropFirst(ssm.smoothed$s)  # smoothed mu
+summary(ssm.sm)
+ts.plot(ssm.sm[,1])
+ts.plot(ssm.sm[,2]) # parameter of d2006
+
+acf(ssm.resid)
+pacf(ssm.resid)
